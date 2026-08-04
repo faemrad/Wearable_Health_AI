@@ -73,7 +73,7 @@ class FileReader:
         df = pd.DataFrame(record.p_signal, columns=record.sig_name)
         if add_time:
             df.insert(0, 'time', np.arange(len(df)) / record.fs)
-            
+
         return df
 
     @staticmethod
@@ -95,4 +95,5 @@ class FileReader:
                 df = pd.read_csv(file_path, sep="\t", skiprows=1)
             else:
                 raise TypeError("CSV file has only one column, seperator was not recognised, please check the file and try again")
+
         return df
