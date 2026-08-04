@@ -3,10 +3,7 @@ import mne
 import wfdb
 import numpy as np
 
-class DataImporter:
-    def __init__(self):
-        pass
-
+class FileReader:
     @staticmethod
     def edf_to_df(file_path: str) -> pd.DataFrame:
         """
@@ -52,7 +49,18 @@ class DataImporter:
         if add_time:
             df.insert(0, 'time', np.arange(len(df)) / record.fs)
             
-
         return df
 
+    @staticmethod
+    def csv_to_df(file_path: str) -> pd.DataFrame:
+        """
+        Gets data from .csv file and combines it into a pandas df. Data is automatically processed.
 
+        Input:
+            - file_path: Either the relative path or the full path to the data_file being opened.
+
+        Output:
+            - a pandas dataframe created from the data files.
+        """
+        df = pd.read_csv(file_path)
+        return df
