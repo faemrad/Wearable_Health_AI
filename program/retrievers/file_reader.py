@@ -97,3 +97,18 @@ class FileReader:
                 raise TypeError("CSV file has only one column, seperator was not recognised, please check the file and try again")
 
         return df
+
+    @staticmethod
+    def npy_to_df(file_path: str, data_type: str) -> pd.DataFrame:
+        """
+        Gets data from .npy file and combines it into a pandas df. Data is automatically processed.
+
+        Input:
+            - file_path: Either the relative path or the full path to the data_file being opened.
+            - data_type: The type of data being read, used to name the column in the dataframe.
+
+        Output:
+            - a pandas dataframe created from the data files.
+        """
+        df = pd.DataFrame(np.load(file_path), columns=[data_type])
+        return df
