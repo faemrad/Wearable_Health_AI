@@ -1,3 +1,5 @@
 *.hea
 *.dat
 *.png
+*.npy
+data/

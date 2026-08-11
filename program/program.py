@@ -1,5 +1,5 @@
 
-from program.processors.file_processor import FileProcessor
+from processors.file_processor import FileProcessor
 
 class Program:
     """
