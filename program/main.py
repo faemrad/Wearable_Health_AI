@@ -2,7 +2,7 @@
 # key values should be replaced to correspond with the column names in the data files
 from unittest import signals
 
-from program.data_preparation.ppg_sport_preparation import PPGSportPreparation, Preparation
+from data_preparation.ppg_sport_preparation import PPGSportPreparation
 from retrievers.file_reader import FileReader
 from processors.file_processor import FileProcessor
 import matplotlib.pyplot as plt
@@ -30,6 +30,6 @@ col_labels = {
 
 
 if __name__ == "__main__":
-    preperation = PPGSportPreparation()
+    preperation = PPGSportPreparation(add_time=True)
     
 
