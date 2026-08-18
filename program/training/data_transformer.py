@@ -11,7 +11,7 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
 
 
-class Training:
+class DataTransformer:
     def __init__(self, data_folder: str, model_type: str, frequency: int, column_labels: list[str]):
         self.data_folder = data_folder
         self.model_type = model_type
@@ -19,7 +19,7 @@ class Training:
         self.column_labels = column_labels
 
         self.get_data_files()
-        # self.transformed_data = self.transform_data(self.data_files)
+        
 
     def get_data_files(self) -> list:
         """
@@ -67,31 +67,40 @@ class Training:
                 new_dict["user_id"] = user_id
                 new_dict["window"] = window
                 self.windowed_data.append(new_dict)
-            
 
         return self.windowed_data
-    def transform_data(self, data_frames: list):
+
+    def get_ecg_data(self, window=5, overlap = 1):
         """
-        Transforms the data by applying a windowing technique to each DataFrame in the provided list.
+        Generates training, validation data and test data for the ECG dataset. 
 
         Args:
-            data_frames (list): A list of pd.DataFrame objects to be transformed.
+            window (int): The size of the window in seconds.
+            overlap (int): The number of overlapping samples between consecutive windows in seconds.
 
         Returns:
-            list: A list of transformed pd.DataFrame objects after applying the windowing technique.
-        """
-        pass
+            A pair of tuples containing the training and validation data for the ECG dataset.
 
-    def create_x_y(self, transformed_data: list = None, activity_labels: list[str] = ["badminton", "basketball", "running", "stationary", "tabletennis", "walking"], x_labels = ["L_imu_x", "L_imu_y", "L_imu_z", "L_ppg"]):
         """
-        Trains a model using the provided transformed data.
+        data = self.window_data(window, overlap)
+        X, y, groups = self.create_x_y(data, x_labels=["ecg"])
+        self.encode_labels()
+        self.split_participants()
+        self.apply_split()
+        return (self.X_train, self.y_train), (self.X_val, self.y_val), (self.X_test, self.y_test)
+
+
+
+    def create_x_y(self, transformed_data: list = None, activity_labels: list[str] = ["badminton", "basketball", "running", "stationary", "tabletennis", "walking"], x_labels = ["R_imu_x", "R_imu_y", "R_imu_z", "R_ppg", "ecg"]):
+        """
+        Creates the input (X) and output (y) data for training the model.
 
         Args:
             transformed_data (list): A list of transformed pd.DataFrame objects to be used for training the model.
             activity_labels (list): A list of activity labels corresponding to the transformed data.
 
         Returns:
-            None
+            tuple: A tuple containing the input data (X) and output data (y) and participant IDs (groups).
         """
         if transformed_data is None:
             transformed_data = self.windowed_data
@@ -113,8 +122,8 @@ class Training:
         self.X = X
         self.y = y
         self.groups = groups
-        
-        pass
+
+        return (X, y, groups)
 
     def encode_labels(self):
         if not hasattr(self, "groups"):
@@ -156,96 +165,3 @@ class Training:
         self.X_val, self.y_val = self.X[val_mask], self.y[val_mask]
         self.X_test, self.y_test = self.X[test_mask], self.y[test_mask]
 
-    def build_1d_cnn_model(self):
-        """
-        Builds a 1D CNN for activity classification, sized to match
-        the windowed data (self.X) and number of activity classes (self.y).
-
-        Returns:
-            None
-        """
-        num_timesteps = self.X.shape[1]
-        num_channels = self.X.shape[2]
-        num_classes = len(np.unique(self.y))
-
-        self.model = models.Sequential([
-            layers.Input(shape=(num_timesteps, num_channels)),
-
-            layers.Conv1D(32, kernel_size=5, activation='relu', padding='same'),
-            layers.MaxPooling1D(2),
-
-            layers.Conv1D(64, kernel_size=5, activation='relu', padding='same'),
-            layers.MaxPooling1D(2),
-
-            layers.Conv1D(128, kernel_size=3, activation='relu', padding='same'),
-            layers.GlobalAveragePooling1D(),
-
-            layers.Dropout(0.4),
-            layers.Dense(64, activation='relu'),
-            layers.Dense(num_classes, activation='softmax')
-        ])
-
-        self.model.compile(optimizer='adam',
-                            loss='sparse_categorical_crossentropy',
-                            metrics=['accuracy'])
-
-        return self.model
-
-    def train(self, epochs: int = 30, batch_size: int = 64):
-        """
-        Trains the model on the train split, validating against the val split.
-
-        Args:
-            epochs (int): Number of training epochs.
-            batch_size (int): Training batch size.
-
-        Returns:
-            History: Keras History object containing training/validation metrics per epoch.
-        """
-        if not hasattr(self, "model"):
-            self.build_1d_cnn_model()
-
-        self.history = self.model.fit(
-            self.X_train, self.y_train,
-            validation_data=(self.X_val, self.y_val),
-            epochs=epochs,
-            batch_size=batch_size
-        )
-
-        return self.history
-
-    def evaluate(self):
-        """
-        Evaluates the trained model on the held-out test split.
-
-        Returns:
-            tuple: (test_loss, test_accuracy)
-        """
-        if not hasattr(self, "model"):
-            raise RuntimeError("No trained model found — call train() first.")
-
-        test_loss, test_acc = self.model.evaluate(self.X_test, self.y_test)
-        print(f"Test loss: {test_loss:.4f}, Test accuracy: {test_acc:.4f}")
-
-        return test_loss, test_acc
-
-    def generate_confusion_matrix(self):
-        y_pred = np.argmax(self.model.predict(self.X_test), axis=1)
-        cm = confusion_matrix(self.y_test, y_pred)
-        disp = ConfusionMatrixDisplay(cm, display_labels=self.label_encoder.classes_)
-        disp.plot(xticks_rotation=45)
-        plt.show()
-
-    def run_process(self):
-        self.window_data(5, 1)
-        self.create_x_y()
-        self.encode_labels()
-        self.split_participants()
-        self.apply_split()
-        self.train()
-        self.evaluate()
-        self.generate_confusion_matrix()
-
-if __name__ == "__main__":
-    training = Training("./data/PPG-Sport/converted_data", "cnn", 64, ["time", "acc_x", "acc_y", "acc_z", "gyro_x", "gyro_y", "gyro_z", "ecg", "ppg", "temp", "eda"])
-    training.run_process()
