@@ -3,8 +3,6 @@
 from unittest import signals
 
 from data_preparation.ppg_sport_preparation import PPGSportPreparation
-from retrievers.file_reader import FileReader
-from processors.file_processor import FileProcessor
 import matplotlib.pyplot as plt
 import pandas as pd
 

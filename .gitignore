@@ -3,3 +3,5 @@
 *.png
 *.npy
 data/
+*.pyc
+*.pth

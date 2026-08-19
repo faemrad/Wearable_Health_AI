@@ -1,0 +1,3 @@
+[submodule "models/ECGFounder"]
+	path = models/ECGFounder
+	url = https://github.com/jfar0026/ECGFounder.git

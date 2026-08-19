@@ -3,13 +3,13 @@ import pandas as pd
 import os
 
 class PPGSportPreparation:
-    def __init__(self, file_path: str = "./data/PPG-Sport/dataset", output_directory: str = "./data/PPG-Sport/converted_data", add_time: bool = False, frequency: int = 64):
+    def __init__(self, file_path: str = "./data/PPG-Sport/dataset", output_directory: str = "./data/PPG-Sport/converted_data", add_time: bool = False, frequency: int = 64, first_time=False):
         self.data_files = [f"{file}" for file in os.listdir(file_path) if file.endswith(".npy")]
         self.keys = self.get_unique_keys_ppg_sport(self.data_files)
         print("successfully created unique keys for the data files")
-        self.create_multiple_csv_from_npy(file_path, self.keys, output_directory=output_directory, add_time=add_time, frequency=frequency)
-        pass
-
+        if first_time:
+            self.create_multiple_csv_from_npy(file_path, self.keys, output_directory=output_directory, add_time=add_time, frequency=frequency)
+    
     @staticmethod
     def get_unique_keys_ppg_sport(file_paths: list) -> set:
         """
