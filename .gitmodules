@@ -1,3 +1,6 @@
 [submodule "models/ECGFounder"]
 	path = models/ECGFounder
 	url = https://github.com/jfar0026/ECGFounder.git
+[submodule "models/HuBERT_ECG"]
+	path = models/HuBERT_ECG
+	url = https://github.com/jfar0026/HuBERT-ECG.git
