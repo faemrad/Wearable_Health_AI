@@ -2,7 +2,7 @@
 # key values should be replaced to correspond with the column names in the data files
 from unittest import signals
 
-from data_preparation.ppg_sport_preparation import PPGSportPreparation
+from program.data_preparation.ppg_sport_preparation import PPGSportPreparation
 import matplotlib.pyplot as plt
 import pandas as pd
 

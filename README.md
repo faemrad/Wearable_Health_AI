@@ -10,3 +10,6 @@ Main data files used for testing and training:
 2. Human Activity Recognition
    a. Paper link:
    b. Dataset link: https://github.com/netd-tud/human-activity-Recognition
+
+Download PPG-SPort into data files under ./data/PPG-Sport
+Run PPGSportPreparation(add_time=True) in main to setup files for training

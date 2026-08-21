@@ -2,14 +2,16 @@ from program.data_preparation.windower import Windower
 from program.processors.file_processor import FileProcessor
 from program.retrievers.file_reader import FileReader
 import os
-import pandas as pd
-import numpy as np
 
 from sklearn.preprocessing import LabelEncoder
 from tensorflow.keras import layers, models
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
 
+import pandas as pd
+import numpy as np
+from math import gcd
+from scipy.signal import resample_poly
 
 class DataTransformer:
     def __init__(self, data_folder: str, model_type: str, frequency: int, column_labels: list[str]):
@@ -83,9 +85,14 @@ class DataTransformer:
 
         """
         data = self.window_data(window, overlap)
+        
+        
+
         X, y, groups = self.create_x_y(data, x_labels=["ecg"])
         self.encode_labels()
         self.split_participants()
+        
+        self.resample_data(100, self.frequency)
         self.apply_split()
         return (self.X_train, self.y_train), (self.X_val, self.y_val), (self.X_test, self.y_test)
 
@@ -132,6 +139,10 @@ class DataTransformer:
         self.y = le.fit_transform(self.y)
         self.label_encoder = le
 
+    def activity_names(self):
+        return self.label_encoder.classes_
+
+
     def split_participants(self, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15, seed=42):
         """
         Splits participant IDs into train/val/test sets based on ratios.
@@ -164,4 +175,38 @@ class DataTransformer:
         self.X_train, self.y_train = self.X[train_mask], self.y[train_mask]
         self.X_val, self.y_val = self.X[val_mask], self.y[val_mask]
         self.X_test, self.y_test = self.X[test_mask], self.y[test_mask]
+
+    def resample_data(self, new_fq, cur_fq, windowed_data = None):
+        """
+        Resamples the data to a new frequency.
+
+        Args:
+            windowed_data (list): A list of windowed pd.DataFrame objects to be resampled.
+            new_fq (int): The new frequency in Hz.
+            cur_fq (int): The current frequency in Hz.
+
+        Returns:
+            list: A list of resampled pd.DataFrame objects.
+        """
+        g = gcd(new_fq, cur_fq)
+        up, down = new_fq // g, cur_fq // g
+
+        if isinstance(self.X, np.ndarray):
+            resampled = resample_poly(self.X, up, down, axis=1)
+            return resampled
+
+        resampled_windows = []
+        for window in windowed_data:
+            original_shape = window.shape
+            columns = window.columns
+
+            resampled_values = resample_poly(window.values, up, down, axis=0)  
+
+            resampled_df = pd.DataFrame(resampled_values, columns=columns)
+            resampled_windows.append(resampled_df)
+
+        return resampled_windows
+        pass
+        
+
 
