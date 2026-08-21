@@ -16,7 +16,7 @@ class FinetuneModels:
         self.device = torch.device('cuda:{}'.format(0) if torch.cuda.is_available() else 'cpu')
         pass
 
-    def finetune_ECGFounder_activity(self, activities: int = 6, linear_prob=False, n_epochs=20):
+    def finetune_ECGFounder_activity(self, activities: int = 6, linear_prob=False, n_epochs=20, normalise=True):
         checkpoint_path = hf_hub_download(
             repo_id="PKUDigitalHealth/ECGFounder",
             filename="1_lead_ECGFounder.pth" 
@@ -25,7 +25,7 @@ class FinetuneModels:
         model = ECGFound.ft_1lead_ECGFounder(self.device, checkpoint_path, activities, linear_prob=linear_prob)
         self.data_transformer = DataTransformer("./data/PPG-Sport/converted_data", "cnn", 54, ["time", "acc_x", "acc_y", "acc_z", "gyro_x", "gyro_y", "gyro_z", "ecg", "ppg", "temp", "eda"])
         
-        (X_train, y_train), (X_val, y_val), (X_test, y_test) = self.data_transformer.get_ecg_data()
+        (X_train, y_train), (X_val, y_val), (X_test, y_test) = self.data_transformer.get_ecg_data(normalise=normalise)
 
         X_train = X_train.swapaxes(1,2)
         X_val = X_val.swapaxes(1,2)
