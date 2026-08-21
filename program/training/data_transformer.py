@@ -72,7 +72,7 @@ class DataTransformer:
 
         return self.windowed_data
 
-    def get_ecg_data(self, window=5, overlap = 1):
+    def get_ecg_data(self, window=5, overlap = 1, normalise=True):
         """
         Generates training, validation data and test data for the ECG dataset. 
 
@@ -85,14 +85,14 @@ class DataTransformer:
 
         """
         data = self.window_data(window, overlap)
-        
-        
 
         X, y, groups = self.create_x_y(data, x_labels=["ecg"])
         self.encode_labels()
         self.split_participants()
         
-        self.resample_data(100, self.frequency)
+        self.X = self.resample_data(100, self.frequency)
+        if normalise:
+            self.normalise_data()
         self.apply_split()
         return (self.X_train, self.y_train), (self.X_val, self.y_val), (self.X_test, self.y_test)
 
@@ -207,6 +207,28 @@ class DataTransformer:
 
         return resampled_windows
         pass
-        
+
+    def normalise_data(self, windowed_data: np.ndarray = None, use_median: bool = False,
+                    eps: float = 1e-8, store_stats: bool = False):
+        if windowed_data is not None:
+            self.X = windowed_data
+
+        if isinstance(self.X, np.ndarray):
+            if use_median:
+                center = np.median(self.X, axis=1, keepdims=True)
+                scale = (np.percentile(self.X, 75, axis=1, keepdims=True)
+                        - np.percentile(self.X, 25, axis=1, keepdims=True))
+            else:
+                center = np.mean(self.X, axis=1, keepdims=True)
+                scale = np.std(self.X, axis=1, keepdims=True)
+
+            self.X = (self.X - center) / (scale + eps)
+
+            if store_stats:
+                # keep for de-normalization later (RevIN-style)
+                self.norm_center = center
+                self.norm_scale = scale
+
+            return self.X
 
 
