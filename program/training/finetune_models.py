@@ -8,22 +8,28 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from huggingface_hub import hf_hub_download
+
 
 class FinetuneModels:
     def __init__(self):
         self.device = torch.device('cuda:{}'.format(0) if torch.cuda.is_available() else 'cpu')
         pass
 
-    def finetune_ECGFounder_activity(self, activities: int, linear_prob=False):
-        model = ECGFound.ft_1lead_ECGFounder(self.device, "./checkpoints/1_lead_ECGFounder.pth", activities, linear_prob=linear_prob)
-        training = DataTransformer("./data/PPG-Sport/converted_data", "cnn", 64, ["time", "acc_x", "acc_y", "acc_z", "gyro_x", "gyro_y", "gyro_z", "ecg", "ppg", "temp", "eda"])
-        (X_train, y_train), (X_val, y_val), (X_test, y_test) = training.get_ecg_data()
+    def finetune_ECGFounder_activity(self, activities: int = 6, linear_prob=False, n_epochs=20):
+        checkpoint_path = hf_hub_download(
+            repo_id="PKUDigitalHealth/ECGFounder",
+            filename="1_lead_ECGFounder.pth" 
+        )
+
+        model = ECGFound.ft_1lead_ECGFounder(self.device, checkpoint_path, activities, linear_prob=linear_prob)
+        self.data_transformer = DataTransformer("./data/PPG-Sport/converted_data", "cnn", 54, ["time", "acc_x", "acc_y", "acc_z", "gyro_x", "gyro_y", "gyro_z", "ecg", "ppg", "temp", "eda"])
+        
+        (X_train, y_train), (X_val, y_val), (X_test, y_test) = self.data_transformer.get_ecg_data()
 
         X_train = X_train.swapaxes(1,2)
         X_val = X_val.swapaxes(1,2)
         X_test = X_test.swapaxes(1,2)
-
-
 
         train_dataset = ECGDataset(X_train, y_train)
         train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True)
@@ -34,9 +40,11 @@ class FinetuneModels:
         test_dataset = ECGDataset(X_test, y_test)
         test_loader = DataLoader(test_dataset, batch_size=256, shuffle=False)
 
-        self.train_model(model, train_loader, val_loader, self.device, n_epochs=10)
+        self.train_model(model, train_loader, val_loader, self.device, n_epochs=n_epochs)
         all_preds, all_labels = self.evaluate(model, test_loader, self.device)
-        self.plot_confusion_matrix(all_preds, all_labels)
+
+
+        self.plot_confusion_matrix(all_labels, all_preds, self.data_transformer.activity_names())
 
 
 
@@ -108,7 +116,8 @@ class FinetuneModels:
 
         return all_preds, all_labels
 
-    def plot_confusion_matrix(all_labels, all_preds, class_names=None):
+    def plot_confusion_matrix(self, all_labels, all_preds, class_names=None):
+        
         cm = confusion_matrix(all_labels, all_preds)
         disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
         fig, ax = plt.subplots(figsize=(8, 8))
@@ -120,4 +129,4 @@ class FinetuneModels:
 
 if __name__ == "__main__":
     finetune = FinetuneModels()
-    finetune.finetune_ECGFounder_activity(6)
+    finetune.finetune_ECGFounder_activity(6, n_epochs=2)
