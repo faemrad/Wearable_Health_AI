@@ -1,4 +1,4 @@
-from program.retrievers.file_reader import FileReader
+from program.tools.file_reader import FileReader
 import pandas as pd
 import numpy as np
 
