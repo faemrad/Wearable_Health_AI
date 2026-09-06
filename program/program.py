@@ -1,5 +1,5 @@
 
-from processors.file_processor import FileProcessor
+from program.tools.file_processor import FileProcessor
 from processors.hr_processor import HRProcessor
 from processors.activity_predictor import ActivityPredictor
 
@@ -15,7 +15,6 @@ class Program:
         self.setup()
 
     def setup(self):
-        self.data = FileProcessor.process_file(self.file_path, self.column_labels, self.frequency)
         pass
 
     def run(self) -> dict:
@@ -27,7 +26,7 @@ class Program:
             
         """
         hr_data = HRProcessor().get_hr_data(self.data, self.frequency, self.use_ecg)
-        activity_data = ActivityPredictor().predict(self.data)
+        activity_data = ActivityPredictor.predict(self.data)
 
         return {"activity": activity_data[0], "confidence": activity_data[1], "hr": hr_data[0], "hr_variability": hr_data[1]}
 
