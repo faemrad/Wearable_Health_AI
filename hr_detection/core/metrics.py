@@ -29,6 +29,49 @@ def regression_report(
     return out
 
 
+def smooth_by_recording(
+    pred: np.ndarray,
+    frame: pd.DataFrame,
+    window: int,
+) -> np.ndarray:
+    """Centered moving median over time within (patient, hand, activity)."""
+    import pandas as pd
+
+    if window <= 1:
+        return pred
+    if window % 2 == 0:
+        window += 1
+    out = np.asarray(pred, dtype=np.float64).copy()
+    tmp = frame.reset_index(drop=True).copy()
+    tmp["_pred"] = out
+    tmp["_ord"] = np.arange(len(tmp))
+    pieces = []
+    for _, g in tmp.groupby(["patient_id", "hand", "activity"], sort=False):
+        g = g.sort_values("start_sample_64")
+        g["_pred"] = g["_pred"].rolling(window, center=True, min_periods=1).median()
+        pieces.append(g)
+    merged = pd.concat(pieces, axis=0).sort_values("_ord")
+    return merged["_pred"].to_numpy(dtype=np.float64)
+
+
+def activity_table(pred: np.ndarray, frame: pd.DataFrame, y: np.ndarray | None = None) -> str:
+    import pandas as pd
+
+    frame = frame.reset_index(drop=True)
+    y = frame["hr_bpm"].to_numpy() if y is None else np.asarray(y).reshape(-1)
+    pred = np.asarray(pred).reshape(-1)
+    rows = []
+    for act, g in frame.groupby("activity"):
+        ii = g.index.to_numpy()
+        err = np.abs(pred[ii] - y[ii])
+        rows.append((str(act), len(ii), float(err.mean()), float((err <= 5).mean() * 100)))
+    rows.sort(key=lambda r: r[0])
+    lines = ["activity          n    MAE   ±5%"]
+    for act, n, mae, w5 in rows:
+        lines.append(f"{act:<14} {n:5d}  {mae:5.2f}  {w5:5.1f}")
+    return "\n".join(lines)
+
+
 def format_report(stats: dict[str, float]) -> str:
     lines = [
         f"n={int(stats['n'])}",

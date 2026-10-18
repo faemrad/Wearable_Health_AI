@@ -5,6 +5,8 @@ Fine-tune two ECG models to **regress heart rate (bpm)** from PTB-XL 10-second w
 - **ECGFounder** — 1-lead (Lead II), linear probe by default.
 - **HuBERT-ECG small** — 12-lead, last 2 transformer blocks unfrozen by default.
 
+PPG-Sport: **`README_PPG.md`**. ECGFounder fine-tune, or Pulse-PPG fine-tune. Do not mix manifests / checkpoints with PTB-XL.
+
 Labels come from NeuroKit2 R-peaks on Lead II (not the PTB-XL spreadsheet). Records that fail peak detection are dropped.
 
 **You run these commands.** Conda env `FIT4701`. **cwd = repo root** `Wearable_Health_AI`.

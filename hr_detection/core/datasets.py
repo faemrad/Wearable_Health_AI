@@ -6,7 +6,7 @@ import torch
 from torch.utils.data import Dataset
 
 from .paths import REPO_ROOT
-from .preprocess import founder_1lead, hubert_input
+from .preprocess import founder_1lead, founder_ppg, hubert_input, pulseppg_input
 
 
 class HRWindows(Dataset):
@@ -24,8 +24,12 @@ class HRWindows(Dataset):
         y = np.float32(row["hr_bpm"])
         if self.kind == "founder":
             x = founder_1lead(ecg)
+        elif self.kind == "founder_ppg":
+            x = founder_ppg(ecg)
         elif self.kind == "hubert":
             x = hubert_input(ecg, random_crop=self.random_crop)
+        elif self.kind == "pulseppg":
+            x = pulseppg_input(ecg)
         else:
             raise ValueError(self.kind)
         return torch.from_numpy(x.copy()), torch.tensor([y], dtype=torch.float32)

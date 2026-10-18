@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import sys
+import warnings
 
 import torch
 import torch.nn as nn
 
-from .paths import FOUNDER_DIR, HUBERT_DIR
+from .paths import FOUNDER_DIR, HUBERT_DIR, PULSEPPG_DIR
 
 
 def load_founder_1lead(pth: str, device: torch.device, linear_prob: bool = True) -> nn.Module:
@@ -87,3 +88,89 @@ def load_hubert_trained(ckpt_dir: str, device: torch.device):
 
     model = HuBERTECGForClassification.from_pretrained(ckpt_dir, num_labels=1)
     return model.to(device)
+
+
+class PulsePPGHR(nn.Module):
+    """Pulse-PPG ResNet encoder plus a linear bpm head. Input (B, 1, T) at 50 Hz."""
+
+    def __init__(self, encoder: nn.Module, embed_dim: int = 512):
+        super().__init__()
+        self.encoder = encoder
+        self.head = nn.Linear(embed_dim, 1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.head(self.encoder(x))
+
+
+def _pulse_encoder() -> nn.Module:
+    if str(PULSEPPG_DIR) not in sys.path:
+        sys.path.insert(0, str(PULSEPPG_DIR))
+    # Upstream InstanceNorm is built with the last block's width and applied to 1-channel PPG.
+    warnings.filterwarnings(
+        "ignore",
+        message="input's size at dim=1 does not match num_features",
+    )
+    from pulseppg.nets.ResNet1D.ResNet1D_Net import Net
+
+    return Net(
+        in_channels=1,
+        base_filters=128,
+        kernel_size=11,
+        stride=2,
+        groups=1,
+        n_block=12,
+        finalpool="max",
+    )
+
+
+def _encoder_state(blob: object) -> dict:
+    if isinstance(blob, dict) and isinstance(blob.get("net"), dict):
+        state = blob["net"]
+    elif isinstance(blob, dict) and isinstance(blob.get("state_dict"), dict):
+        state = blob["state_dict"]
+    elif isinstance(blob, dict):
+        state = blob
+    else:
+        raise TypeError(f"Unrecognised Pulse-PPG checkpoint type {type(blob)}")
+    cleaned = {}
+    for key, value in state.items():
+        if key.startswith("module."):
+            key = key[len("module.") :]
+        if key.startswith("encoder."):
+            key = key[len("encoder.") :]
+        if key.startswith("head."):
+            continue
+        cleaned[key] = value
+    return cleaned
+
+
+def load_pulseppg(weights: str, device: torch.device, linear_prob: bool = False) -> nn.Module:
+    """Pretrained Pulse-PPG ResNet with a new bpm head."""
+    encoder = _pulse_encoder()
+    blob = torch.load(weights, map_location="cpu", weights_only=False)
+    missing, unexpected = encoder.load_state_dict(_encoder_state(blob), strict=False)
+    missing = [key for key in missing if "num_batches_tracked" not in key]
+    if missing or unexpected:
+        raise RuntimeError(
+            f"Pulse-PPG weight mismatch in {weights}: "
+            f"missing={missing[:8]} n_missing={len(missing)} "
+            f"unexpected={unexpected[:8]} n_unexpected={len(unexpected)}"
+        )
+    model = PulsePPGHR(encoder)
+    if linear_prob:
+        for param in model.encoder.parameters():
+            param.requires_grad = False
+    return model.to(device)
+
+
+def load_pulseppg_hr(
+    weights: str,
+    hr_ckpt: str,
+    device: torch.device,
+    linear_prob: bool = False,
+) -> nn.Module:
+    """Pretrained encoder, then the fine-tuned PPG-Sport HR checkpoint."""
+    model = load_pulseppg(weights, device, linear_prob=linear_prob)
+    ckpt = torch.load(hr_ckpt, map_location="cpu", weights_only=False)
+    model.load_state_dict(ckpt["state_dict"])
+    return model

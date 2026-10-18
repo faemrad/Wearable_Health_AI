@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 from scipy.signal import butter, decimate, filtfilt, iirnotch, medfilt, resample
 
-from .paths import HUBERT_CROP, HUBERT_DOWNSAMPLE, TARGET_FS, TARGET_LEN
+from .paths import HUBERT_CROP, HUBERT_DOWNSAMPLE, PULSEPPG_FS, TARGET_FS, TARGET_LEN
 
 
 def filter_bandpass_founder(signal: np.ndarray, fs: int) -> np.ndarray:
@@ -46,6 +46,26 @@ def founder_1lead(ecg_12_500: np.ndarray) -> np.ndarray:
     lead_ii = ecg_12_500[1:2]
     x = filter_bandpass_founder(lead_ii, TARGET_FS)
     return z_score(x).astype(np.float32)
+
+
+def founder_ppg(ppg_1_500: np.ndarray) -> np.ndarray:
+    """1-channel PPG at 500 Hz → ECGFounder 1-lead filter + z-score. Shape (1, T)."""
+    if ppg_1_500.ndim == 1:
+        ppg_1_500 = ppg_1_500[None, :]
+    x = filter_bandpass_founder(ppg_1_500[:1], TARGET_FS)
+    return z_score(x).astype(np.float32)
+
+
+def pulseppg_input(ppg_1_500: np.ndarray) -> np.ndarray:
+    """Cached 500 Hz PPG window → Pulse-PPG 50 Hz input. Shape (1, T).
+
+    The ResNet applies InstanceNorm over time, so this does not z-score again.
+    """
+    if ppg_1_500.ndim == 1:
+        ppg_1_500 = ppg_1_500[None, :]
+    x = ppg_1_500[:1]
+    n_out = int(round(x.shape[1] * PULSEPPG_FS / TARGET_FS))
+    return resample(x, n_out, axis=1).astype(np.float32)
 
 
 def hubert_minmax(seq: np.ndarray, smooth: float = 1e-8) -> np.ndarray:

@@ -6,6 +6,8 @@ data/
 *.pyc
 *.pth
 *.safetensors
+models/checkpoints/pulseppg/
 __pycache__/
 *.py[cod]
 data/ptb-xl
+.DS_Store
