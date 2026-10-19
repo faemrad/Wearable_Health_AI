@@ -1,4 +1,3 @@
-"""Frozen-embedding pipeline: extract features once, fit a light classifier on top."""
 import os
 
 import joblib
@@ -20,10 +19,26 @@ from activity_recognition.core.model_functions.datasets import Datasets
 class FrozenFeatureMixin:
 
     def extract_features(self, backbone, loader):
-        """Override in subclass - model-specific feature extraction."""
+        """
+        Override in subclass - model-specific feature extraction.
+        Args:
+            backbone: the backbone model
+            loader: the data loader
+        Returns:
+            features, labels
+        """
         raise NotImplementedError
 
     def frozen_extraction(self, class_names=None, classifier="logistic", save_prefix="model"):
+        """
+        Extracts frozen features from the backbone model and trains a classifier on top of them.
+        Args:
+            class_names: a list of class names (optional)
+            classifier: the type of classifier to use ("logistic" or "mlp")
+            save_prefix: a prefix for saving the trained classifier
+        Returns:
+            tuple: a tuple containing the trained classifier and the extracted features and labels for training, validation, and testing
+        """
         X_train, y_train = self.extract_features(self.model, self.train_loader)
         X_val, y_val = self.extract_features(self.model, self.val_loader)
         X_test, y_test = self.extract_features(self.model, self.test_loader)
@@ -58,6 +73,20 @@ class FrozenFeatureMixin:
         Linear probe: extract frozen embeddings ONCE, then fit a regularised
         logistic regression per fold on the same subject-wise folds as
         fine_tune_cross_validation. C is chosen on the inner val split only.
+
+        Args:
+            X_all: the input data
+            y_all: the labels
+            groups_all: the group labels for stratification
+            class_names: the class names
+            stratify_labels: the labels to use for stratification (if None, uses y_all)
+            n_splits: the number of folds for cross-validation
+            Cs: the C values to try
+            model_name: the name of the model (used for saving the config)
+            save_dir: the directory to save the confusion matrices
+
+        Returns:
+            tuple: a tuple containing the confusion matrices for each fold
         """
         if stratify_labels is None:
             stratify_labels = y_all
@@ -115,6 +144,23 @@ class FrozenFeatureMixin:
     def cross_validate(self, X_all, y_all, groups_all, class_names, datasets_all=None,
                        n_splits=1, classifier="logistic", stratify_labels=None,
                        save_dir="confusion_matrices"):
+        """
+        Performs cross-validation on the given data, using the given classifier.
+
+        Args:
+            X_all: the input data
+            y_all: the labels
+            groups_all: the group labels for stratification
+            class_names: the class names
+            datasets_all: the dataset labels (optional)
+            n_splits: the number of folds for cross-validation
+            classifier: the type of classifier to use ("logistic" or "mlp")
+            stratify_labels: the labels to use for stratification (if None, uses y_all)
+            save_dir: the directory to save the confusion matrices
+
+        Returns:
+            tuple: a tuple containing the confusion matrices for each fold
+        """
 
         if stratify_labels is None:
             stratify_labels = y_all

@@ -4,8 +4,26 @@ import numpy as np
 
 
 class Datasets(Dataset):
+    """
+    A custom dataset for handling signal data and labels.
+    """
     def __init__(self, signals, labels, train=False, noise_std=0.01,
                  scale_range=(0.9, 1.1), max_shift_frac=0.05, mask_frac=0.05):
+        """
+        Initialize the dataset.
+
+        Args:
+            signals: the input signal data
+            labels: the corresponding labels
+            train: whether to apply data augmentation (default: False)
+            noise_std: the standard deviation of the noise to add (default: 0.01)
+            scale_range: the range of scaling factors (default: (0.9, 1.1))
+            max_shift_frac: the maximum fraction of the sequence length to shift (default: 0.05)
+            mask_frac: the fraction of the sequence to mask (default: 0.05)
+
+        Returns:
+            None
+        """
         self.signals = signals
         self.labels = labels
         self.train = train
@@ -15,9 +33,24 @@ class Datasets(Dataset):
         self.mask_frac = mask_frac
 
     def __len__(self):
+        """
+        The number of samples in the dataset.
+
+        Returns:
+            int: the number of samples
+        """
         return len(self.signals)
 
     def _augment(self, x):
+        """
+        Apply data augmentation to the input signal.
+
+        Args:
+            x: the input signal
+
+        Returns:
+            np.ndarray: the augmented signal
+        """
         seq_len = x.shape[-1]
 
         scale = np.random.uniform(*self.scale_range)
@@ -42,6 +75,16 @@ class Datasets(Dataset):
         return x
 
     def __getitem__(self, idx):
+        """
+        Get a sample from the dataset.
+
+        Args:
+            idx: the index of the sample
+
+        Returns:
+            tuple: a tuple containing the input signal and label
+            
+        """
         x = self.signals[idx]
         if x.ndim == 1:
             x = x[np.newaxis, :]

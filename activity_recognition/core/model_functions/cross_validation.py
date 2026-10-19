@@ -1,4 +1,3 @@
-"""Fine-tuning workflows: subject-wise CV and the final deployable model."""
 import json
 import os
 
@@ -8,6 +7,9 @@ from sklearn.model_selection import StratifiedGroupKFold
 
 
 class CrossValidationMixin:
+    """
+    Cross-validation mixin for frozen-feature / fine-tuning pipelines on windows.
+    """
 
     def fine_tune_final_model(self, X_all, y_all, groups_all, class_names, n_classes=6,
                               val_fraction_splits=5, n_epochs=20, backbone_lr=1e-5, head_lr=1e-4,
@@ -15,6 +17,32 @@ class CrossValidationMixin:
                               freeze_backbone=False, batch_size=32, dropout=0.3,
                               save_path="final_model.pth", stratify_labels=None,
                               model_name=None):
+        """
+        Fine-tunes the model on the entire dataset, using a stratified group K-fold split to hold out a validation set for early stopping.
+
+        Args:
+            X_all: the input data
+            y_all: the labels
+            groups_all: the group labels for stratification
+            class_names: the class names
+            n_classes: the number of classes
+            val_fraction_splits: the number of splits for the validation set
+            n_epochs: the number of epochs to train for
+            backbone_lr: the learning rate for the backbone
+            head_lr: the learning rate for the classification head
+            weight_decay: the weight decay for the optimizer
+            early_stopping_patience: the patience for early stopping
+            scheduler_patience: the patience for the learning rate scheduler
+            freeze_backbone: whether to freeze the backbone during training
+            batch_size: the batch size for training
+            dropout: the dropout rate for the classification head
+            save_path: the path to save the final model to
+            stratify_labels: the labels to use for stratification (if None, uses y_all)
+            model_name: the name of the model (used for saving the config)
+
+        Returns:
+            tuple: a tuple containing the path to the saved model and the path to the saved config
+        """
         if stratify_labels is None:
             stratify_labels = y_all
 
@@ -71,7 +99,7 @@ class CrossValidationMixin:
 
         return save_path, config_path
 
-    def fine_tune_cross_validation(self, X_all, y_all, groups_all, class_names, datasets_all=None,
+    def fine_tune_cross_validation(self, X_all, y_all, groups_all, class_names, 
                                    n_splits=1, n_classes=6, n_epochs=20,
                                    backbone_lr=1e-5, head_lr=1e-4, weight_decay=1e-4,
                                    early_stopping_patience=8, scheduler_patience=3,
@@ -82,8 +110,29 @@ class CrossValidationMixin:
         Subject-wise (grouped) stratified K-fold CV with an inner subject-wise
         train/val split for checkpoint selection.
 
-        model_name: used to name the saved confusion matrix files.
-        plot_per_fold: if True, also saves one confusion matrix PNG per fold.
+        Args:
+            X_all: the input data
+            y_all: the labels
+            groups_all: the group labels for stratification
+            class_names: the class names
+            n_splits: the number of folds for cross-validation
+            n_classes: the number of classes
+            n_epochs: the number of epochs to train for
+            backbone_lr: the learning rate for the backbone
+            head_lr: the learning rate for the classification head
+            weight_decay: the weight decay for the optimizer
+            early_stopping_patience: the patience for early stopping
+            scheduler_patience: the patience for the learning rate scheduler
+            freeze_backbone: whether to freeze the backbone during training
+            batch_size: the batch size for training
+            save_dir: the directory to save the models to
+            stratify_labels: the labels to use for stratification (if None, uses y_all)
+            model_name: the name of the model (used for saving the config)
+            plot_per_fold: whether to plot the confusion matrix for each fold
+            on_fold_end: a callback function to call at the end of each fold, with signature (fold_idx, model, X_val, y_val, X_test, y_test)
+        
+        Returns:
+            list: a list of classification reports for each fold
         """
         if stratify_labels is None:
             stratify_labels = y_all

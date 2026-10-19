@@ -1,4 +1,3 @@
-"""Loads raw recordings, windows them, and prepares X / y / groups for training."""
 from math import gcd
 
 import numpy as np
@@ -92,7 +91,7 @@ class DataTransformer:
             windows_per_activity.setdefault(activity, 0)
 
             windows = DataTransformer._apply_data_transformations(
-                data[datatype].to_numpy(), SOURCE_FREQUENCY, window_size, overlap, datatype,
+                data[datatype].to_numpy(), SOURCE_FREQUENCY, window_size, overlap,
                 windower=windower, window_first=window_first, default_frequency=frequency,
                 rescale=rescale, normalise=normalise
             )
@@ -124,6 +123,10 @@ class DataTransformer:
     def create_x_y(transformed_data: list, x_labels: list):
         """
         Stacks window dicts into arrays.
+
+        Args:
+            transformed_data: list of window dicts.
+            x_labels: list of columns to use.
 
         Returns:
             (X, y, groups, datasets), where y still holds string activity labels.
@@ -158,16 +161,35 @@ class DataTransformer:
         self.y = self.label_encoder.fit_transform(self.y)
 
     def activity_names(self):
+        """
+        Gets the activity names from the encoder.
+
+        Returns:
+            List of activity names.
+        """
         return self.label_encoder.classes_
 
     @staticmethod
     def _require_array(data):
+        """
+        Performs a check that `data` is a numpy array.
+
+        Args:
+            data: The data to check.
+        """
         if not isinstance(data, np.ndarray):
             raise ValueError("Data must be a numpy array.")
 
     @staticmethod
     def log_transform(data: np.ndarray, inplace: bool = False):
-        """Signed log1p: sign(x) * log(1 + |x|). Handles zeros and negatives."""
+        """Signed log1p: sign(x) * log(1 + |x|). Handles zeros and negatives.
+        Args:
+            data: 1-D (samples,) or 2-D (channels, samples) array.
+            inplace: whether to modify `data` in-place.
+
+        Returns:
+            1-D (samples,) or 2-D (channels, samples) array.
+        """
         if not inplace:
             data = data.astype(float, copy=True)
         sign = np.sign(data)
@@ -185,6 +207,9 @@ class DataTransformer:
             new_fq: new frequency in Hz.
             cur_fq: current frequency in Hz.
             data: 1-D (samples,) or 2-D (channels, samples) array.
+        
+        Returns:
+            1-D (samples,) or 2-D (channels, samples) array.
         """
         DataTransformer._require_array(data)
         g = gcd(new_fq, cur_fq)
@@ -192,7 +217,15 @@ class DataTransformer:
 
     @staticmethod
     def rescale_data(data, eps: float = 1e-8, feature_range=(-1.0, 1.0)):
-        """Min-max scale along the last axis into feature_range."""
+        """Min-max scale along the last axis into feature_range.
+        Args:
+            data: 1-D (samples,) or 2-D (channels, samples) array.
+            eps: a small number to avoid division by zero.
+            feature_range: the range of the data after scaling.
+
+        Returns:
+            1-D (samples,) or 2-D (channels, samples) array.
+        """
         DataTransformer._require_array(data)
 
         lo, hi = feature_range
@@ -210,6 +243,14 @@ class DataTransformer:
         """
         Robust z-score along the last axis (median / MAD, falling back to std),
         clipped to +-clip. Flat segments become NaN so they can be dropped later.
+
+        Args:
+            data: 1-D (samples,) or 2-D (channels, samples) array.
+            flat_tol: tolerance for flat segments.
+            clip: maximum absolute value.
+
+        Returns:
+            1-D (samples,) or 2-D (channels, samples) array.
         """
         DataTransformer._require_array(data)
 
@@ -224,12 +265,26 @@ class DataTransformer:
         return out.astype(np.float32)
 
     @staticmethod
-    def _apply_data_transformations(data: np.ndarray, frequency, window_size, overlap, datatype, windower=None,
+    def _apply_data_transformations(data: np.ndarray, frequency, window_size, overlap, windower=None,
                                     window_first=False, default_frequency=100, rescale=False,
-                                    normalise=True, bandpass=False):
+                                    normalise=True):
         """
         Fill NaNs -> resample to default_frequency -> optional band-pass -> scale + window.
         Order of scaling vs windowing is controlled by window_first.
+
+        Args:
+            data: 1-D (samples,) or 2-D (channels, samples) array.
+            frequency: current frequency in Hz.
+            window_size: window length in seconds.
+            overlap: overlap between consecutive windows in seconds.
+            windower: instance of Windower.
+            window_first: window before scaling (True) or scale the whole recording first (False).
+            default_frequency: target sampling rate in Hz.
+            rescale: per-window (or per-recording) scaling.
+
+        Returns:
+            1-D (samples,) or 2-D (channels, samples) array.
+        
         """
         DataTransformer._require_array(data)
 
@@ -262,6 +317,17 @@ class DataTransformer:
 
     @staticmethod
     def default_data_transformation(data: np.ndarray, datatype, frequency: int, bandpass=False):
+        """
+        Perform the default data transformation, including resampling and windowing.
+
+        Args:
+            data: 1-D (samples,) or 2-D (channels, samples) array.
+            datatype: signal column to use ("ecg" or "ppg").
+            frequency: target sampling rate in Hz (recordings are resampled from SOURCE_FREQUENCY).
+        
+        Returns:
+            1-D (samples,) or 2-D (channels, samples) array.
+        """
         return DataTransformer._apply_data_transformations(
             data, frequency, 8, 2, datatype, windower=None, window_first=False, default_frequency=100,
             rescale=False, normalise=True, bandpass=bandpass
@@ -272,7 +338,18 @@ class DataTransformer:
     def get_processed_windows_from_np_array(array: np.ndarray, window_size: int, overlap: float,
                                             frequency: int, normalise=True, rescale=False,
                                             window_first=False, target_frequency=100):
-        """Inference-time preprocessing, identical to the training path.
+        """
+        Inference-time preprocessing, identical to the training path.
+
+        Args:
+            array: 1-D (samples,) or 2-D (channels, samples) array.
+            window_size: window length in seconds.
+            overlap: overlap between consecutive windows in seconds.
+            frequency: current frequency in Hz.
+            normalise: whether to normalise the data.
+            rescale: whether to rescale the data.
+            window_first: window before scaling (True) or scale the whole recording first (False).
+            target_frequency: target sampling rate in Hz.
 
         Returns:
             np.ndarray of shape (n_windows, window_length)

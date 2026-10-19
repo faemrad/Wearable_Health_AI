@@ -1,4 +1,3 @@
-"""Confusion-matrix plotting."""
 import os
 
 import matplotlib.pyplot as plt
@@ -9,7 +8,18 @@ class PlottingMixin:
 
     def plot_confusion_matrix(self, all_labels, all_preds, class_names=None, title_suffix="",
                               normalise="true", save_path=None, display=True):
-        """Renders a confusion matrix and saves it to `save_path` as a PNG."""
+        """Renders a confusion matrix and saves it to `save_path` as a PNG.
+        Args:
+            all_labels: the true labels
+            all_preds: the predicted labels
+            class_names: a list of class names (optional)
+            title_suffix: a suffix for the plot title (optional)
+            normalise: whether to normalise the confusion matrix (default: True)
+            save_path: a path to save the confusion matrix plot as a PNG file (optional)
+            display: whether to display the plot (default: True)
+        Returns:
+            the path to the saved confusion matrix
+        """
         cm = confusion_matrix(all_labels, all_preds, normalize=normalise)
         disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
         fig, ax = plt.subplots(figsize=(8, 8))

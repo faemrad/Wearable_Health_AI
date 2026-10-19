@@ -17,8 +17,6 @@ def build_hubert_model(n_classes, dropout=0.3, device="cpu"):
 
     Returns:
         the model
-
-    TODO : Connect config to current submodule
     """
     config = HuBERTECGClassificationConfig.from_pretrained(
         "Edoardo-Coppola/hubert-ecg-base",

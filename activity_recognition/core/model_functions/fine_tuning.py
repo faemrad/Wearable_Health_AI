@@ -1,4 +1,3 @@
-"""Fine-tuning: parameter grouping, training loop and test-set evaluation."""
 import os
 import sys
 import time
@@ -11,17 +10,38 @@ from sklearn.metrics import classification_report, f1_score
 
 
 class FineTuneMixin:
+    """Base class for fine-tuning models."""
 
     BACKBONE_ATTR_NAMES = ["backbone", "encoder"]
     HEAD_ATTR_NAMES = ["dense", "classifier", "fc", "head"]
 
     def create_finetune_model(self, n_classes):
+        """
+        Override in subclass - model-specific fine-tuning model creation.
+        Args:
+            n_classes: the number of classes for the classification head
+        """
         raise NotImplementedError
 
     def prepare_input(self, x):
+        """
+        Override in subclass - model-specific input preparation (e.g., channel selection, normalization).
+        Args:
+            x: the input data
+        Returns:
+            the prepared input data
+        """
         return x
 
     def _find_named_submodule(self, model, attr_names):
+        """
+        Find a submodule by its attribute name.
+        Args:
+            model: the model to search
+            attr_names: a list of attribute names to check
+        Returns:
+            a tuple of (name, module) if found, otherwise (None, None)
+        """
         for name in attr_names:
             module = getattr(model, name, None)
             if isinstance(module, nn.Module):
@@ -29,7 +49,16 @@ class FineTuneMixin:
         return None, None
 
     def _split_backbone_head_params(self, model):
-        """Returns (backbone_params, head_params, backbone_module, head_module)."""
+        """
+        Returns (backbone_params, head_params, backbone_module, head_module).
+        If no backbone or head submodule can be identified, returns ([], all_params, None, None).
+        Override in subclass if model-specific.
+        
+        Args:
+            model: the model to split
+        Returns:
+            tuple: a tuple containing the backbone parameters, head parameters, backbone module, and head module
+        """
         _, backbone_module = self._find_named_submodule(model, self.BACKBONE_ATTR_NAMES)
 
         if backbone_module is not None:
@@ -63,14 +92,35 @@ class FineTuneMixin:
         return [], [p for p in model.parameters() if p.requires_grad], None, None
 
 
-    def fine_tune(self, n_classes, class_names=None, n_epochs=20, backbone_lr=1e-5, head_lr=1e-4,
+    def fine_tune(self, n_classes, n_epochs=20, backbone_lr=1e-5, head_lr=1e-4,
                   weight_decay=1e-4, head_weight_decay_scale=0.1, label_smoothing=0.1, max_grad_norm=1.0,
                   early_stopping_patience=8, scheduler_patience=3, freeze_backbone=False, min_delta=1e-3,
                   unfreeze_after_epoch=0, class_weights=None, save_path="best_model.pth",
                   max_train_val_gap=None):
         """
+        Fine-tunes the model on the training set, using the validation set for early stopping.
         Checkpoints are selected on validation macro-F1 (not accuracy).
-        Returns (model, best_val_f1).
+
+        Args:
+            n_classes: the number of classes for the classification head
+            n_epochs: the number of epochs to train for
+            backbone_lr: the learning rate for the backbone
+            head_lr: the learning rate for the classification head
+            weight_decay: the weight decay for the optimizer
+            head_weight_decay_scale: scale factor for weight decay on head parameters
+            label_smoothing: label smoothing factor for cross-entropy loss
+            max_grad_norm: maximum gradient norm for clipping (None to disable)
+            early_stopping_patience: number of epochs with no improvement to wait before stopping
+            scheduler_patience: number of epochs with no improvement to wait before reducing LR
+            freeze_backbone: whether to freeze the backbone during training
+            min_delta: minimum change in validation macro-F1 to qualify as an improvement
+            unfreeze_after_epoch: epoch after which to unfreeze the backbone (if frozen)
+            class_weights: weights for each class (for imbalanced datasets)
+            save_path: path to save the best model checkpoint
+            max_train_val_gap: maximum allowed gap between training and validation accuracy (None to disable)
+
+        Returns:
+            tuple: a tuple containing the best model and the best validation macro-F1 score
         """
         self.classification_model = self.create_finetune_model(n_classes).to(self.device)
 
@@ -87,6 +137,11 @@ class FineTuneMixin:
         warmup_active = freeze_backbone and unfreeze_after_epoch > 0
 
         def set_backbone_requires_grad(flag):
+            """
+            Sets the requires_grad attribute of the backbone parameters to the given flag.
+            Args:
+                flag: boolean indicating whether to require gradients for the backbone parameters
+            """
             if backbone_module is not None:
                 for param in backbone_module.parameters():
                     param.requires_grad = flag
@@ -100,6 +155,11 @@ class FineTuneMixin:
                       "submodule could be identified, so nothing was frozen.")
 
         def build_optimizer_and_scheduler():
+            """
+            Builds the optimizer and learning rate scheduler.
+            Returns:
+                tuple: a tuple containing the optimizer and learning rate scheduler
+            """
             b_params, h_params, _, _ = self._split_backbone_head_params(self.classification_model)
             groups = []
             if b_params:
@@ -140,7 +200,6 @@ class FineTuneMixin:
                 optimizer, scheduler = build_optimizer_and_scheduler()
                 warmup_active = False
 
-            # ---------------- train ----------------
             self.classification_model.train()
             total_loss, total_samples, total_correct, skipped_batches = 0.0, 0, 0, 0
 
@@ -252,6 +311,15 @@ class FineTuneMixin:
 
     def evaluate_finetuned(self, class_names=None, title_suffix=" (Fine-tuned)",
                            save_path=None, plot=True):
+        """
+        Evaluates the fine-tuned model on the test set and optionally plots a confusion matrix.
+
+        Args:
+            class_names: a list of class names (optional)
+            title_suffix: a suffix for the plot title (optional)
+            save_path: a path to save the confusion matrix plot as a PNG file (optional)
+            plot: whether to plot the confusion matrix (default: True)
+        """
         self.classification_model.eval()
 
         all_preds, all_labels = [], []

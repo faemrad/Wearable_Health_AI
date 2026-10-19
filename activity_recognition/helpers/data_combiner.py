@@ -7,11 +7,36 @@ from math import gcd
 import numpy as np
 import pandas as pd
 
+PPG_SPORT_FQ = 64
+PTT_PPG_FQ = 500
+PPG_DALIA_PPG_FQ = 64
+PPG_DALIA_ACC_FQ = 32
+PPG_DALIA_ACT_FQ = 4
+PPG_DALIA_ECG_FQ = 700
+WRIST_PPG_FQ = 256
+
+TARGET_FQ = 100
+
 class DataCombiner:
+    """
+    Class to combine and load data from different sources
+    """
     def __init__(self):
         pass
 
-    def get_all_data(self):
+    def get_all_data(self) -> list[pd.DataFrame]:
+        """
+        Returns all data from different sources. Resamples all data to target frequency
+        Returns:
+            all_data: list of dataframes
+
+                
+        Each dataframe has the following columns:
+            dataset: str
+            subject: str
+            activity: str
+            dataframe: pd.DataFrame where each row is a datapoint
+        """
         all_data = []
 
         all_data.extend(self.get_ppg_sport())
@@ -20,7 +45,19 @@ class DataCombiner:
         all_data.extend(self.get_ptt_ppg_data())
         return all_data
 
-    def get_ppg_sport(self):
+    def get_ppg_sport(self) -> list[pd.DataFrame]:
+        """
+        Gets data from the ppg-sport dataset
+
+        Returns:
+            all_data: list of dataframes
+        
+        Each dataframe has the following columns:
+            dataset: str
+            subject: str
+            activity: str
+            dataframe: pd.DataFrame where each row is a datapoint
+        """
         folder = os.path.dirname("./data/ppg-sport/converted_data/")
         all_data = []
         for file in os.listdir(folder):
@@ -37,7 +74,7 @@ class DataCombiner:
                 activity = file.split("_")[1]
                 activity = activity.split(".")[0]
 
-                df = resample_dataframe(df, 64, 100)
+                df = resample_dataframe(df, PPG_SPORT_FQ, TARGET_FQ)
 
                 datapoint = {
                     "dataset": "ppg-sport",
@@ -50,6 +87,12 @@ class DataCombiner:
         return all_data
 
     def get_ptt_ppg_data(self):
+        """
+        Extracts data from the pulse-transit-time-ppg dataset
+
+        Returns:
+            all_data: list of dataframes
+        """
         folder = os.path.dirname("./data/pulse-transit-time-ppg/1.1.0/csv/")
         all_data = []
         for file in os.listdir(folder):
@@ -64,7 +107,7 @@ class DataCombiner:
                 keep_cols = ["ecg", "a_x", "a_y", "a_z", "g_x", "g_y", "g_z"]
                 df = df.loc[:, df.columns.intersection(keep_cols)]
                 df.rename(columns={"a_x": "acc_x", "a_y": "acc_y", "a_z": "acc_z", "g_x": "gyro_x", "g_y": "gyro_y", "g_z": "gyro_z"}, inplace=True)
-                df = resample_dataframe(df, 500, 100)
+                df = resample_dataframe(df, PTT_PPG_FQ, TARGET_FQ)
 
                 datapoint = {
                     "dataset": "ptt-ppg",
@@ -79,6 +122,12 @@ class DataCombiner:
 
 
     def get_ppg_dalia(self):
+        """
+        Extracts data from the PPG_FieldStudy dataset. Only sitting, outdoor-cycle, walking and working activities.
+
+        Returns:
+            all_data: list of dataframes
+        """
         main_folder = os.path.dirname("./data/ppg+dalia/data/PPG_FieldStudy/")
         int_to_activity = {
             1: "sitting",
@@ -103,24 +152,18 @@ class DataCombiner:
                         ecg_data = chest_data["ECG"]
                         acc_x, acc_y, acc_z = wrist_data["ACC"].T
 
-                        ppg_fq = 64
-                        acc_fq = 32
-                        act_fq = 4
-                        ecg_fq = 700
-                        target_fq = 100
-
                         initial = extract_activity_start_end(df["activity"])
                         activity = df["activity"]
-                        resampled_activity = resample_activity(activity, act_fq, target_fq)
+                        resampled_activity = resample_activity(activity, PPG_DALIA_ACT_FQ, TARGET_FQ)
 
-                        duration_sec = len(ecg_data) / ecg_fq
+                        duration_sec = len(ecg_data) / PPG_DALIA_ECG_FQ
                         target_len = round(duration_sec * 100)
 
-                        ecg_data = resample_to_length(ecg_data, ecg_fq, target_fq, target_len)
-                        ppg_data = resample_to_length(ppg_data, ppg_fq, target_fq, target_len)
-                        acc_x = resample_to_length(acc_x, acc_fq, target_fq, target_len)
-                        acc_y = resample_to_length(acc_y, acc_fq, target_fq, target_len)
-                        acc_z = resample_to_length(acc_z, acc_fq, target_fq, target_len)
+                        ecg_data = resample_to_length(ecg_data, PPG_DALIA_ECG_FQ, TARGET_FQ, target_len)
+                        ppg_data = resample_to_length(ppg_data, PPG_DALIA_PPG_FQ, TARGET_FQ, target_len)
+                        acc_x = resample_to_length(acc_x, PPG_DALIA_ACC_FQ, TARGET_FQ, target_len)
+                        acc_y = resample_to_length(acc_y, PPG_DALIA_ACC_FQ, TARGET_FQ, target_len)
+                        acc_z = resample_to_length(acc_z, PPG_DALIA_ACC_FQ, TARGET_FQ, target_len)
 
                         combined_df = pd.DataFrame()
                         combined_df["acc_x"] = acc_x
@@ -153,6 +196,12 @@ class DataCombiner:
         pass
 
     def get_wrist_ppg_during_exercise(self):
+        """
+        Extracts data from the wrist-ppg-during-exercise dataset.
+
+        Returns:
+            all_data: list of dataframes
+        """
         folder_path = "./data/wrist-ppg-during-exercise/1.0.0/"
         all_data = []
         for file in os.listdir(folder_path):
@@ -170,7 +219,7 @@ class DataCombiner:
                                    "wrist_low_noise_accelerometer_x": "low_noise_acc_x", "wrist_low_noise_accelerometer_y": "low_noise_acc_y", "wrist_low_noise_accelerometer_z": "low_noise_acc_z", 
                                    "wrist_wide_range_accelerometer_x": "wide_range_acc_x", "wrist_wide_range_accelerometer_y": "wide_range_acc_y", "wrist_wide_range_accelerometer_z": "wide_range_acc_z"}, inplace=True)
 
-                df = resample_dataframe(df, 256, 100)
+                df = resample_dataframe(df, WRIST_PPG_FQ, TARGET_FQ)
   
                 datapoint = {
                     "dataset": "wrist-ppg",
@@ -182,15 +231,19 @@ class DataCombiner:
 
         return all_data
 
-                
-def rescale(data):
-    min_val = min(data)
-    max_val = max(data)
-    for i in range(len(data)):
-        data[i] = (data[i] - min_val) / (max_val - min_val)
-    return data
 
 def resample_data(array, cur_frequency, new_frequency):
+    """
+    Resamples an array to a new frequency.
+
+    Args:
+        array (np.ndarray): The input array to be resampled.
+        cur_frequency (int): The current frequency in Hz.
+        new_frequency (int): The new frequency in Hz.
+
+    Returns:
+        np.ndarray: The resampled array.
+    """
     g = gcd(cur_frequency, new_frequency)
     up, down = new_frequency // g, cur_frequency // g
     resampled_array = resample_poly(array, up, down)
@@ -198,11 +251,22 @@ def resample_data(array, cur_frequency, new_frequency):
     pass
 
 def resample_to_length(array, cur_fq, new_fq, target_len):
+    """
+    Resamples an array to new target length.
+
+    Args:
+        array (np.ndarray): The input array to be resampled.
+        cur_fq (int): The current frequency in Hz.
+        new_fq (int): The new frequency in Hz.
+        target_len (int): The target length of the resampled array.
+
+    Returns:
+        np.ndarray: The resampled array.
+    """
     g = gcd(cur_fq, new_fq)
     up, down = new_fq // g, cur_fq // g
     resampled = resample_poly(array, up, down)
 
-    # trim/pad the small rounding discrepancy (should only ever be a few samples)
     diff = target_len - len(resampled)
     if diff > 0:
         resampled = np.pad(resampled, (0, diff), mode='edge')
@@ -211,6 +275,17 @@ def resample_to_length(array, cur_fq, new_fq, target_len):
     return resampled
 
 def resample_dataframe(df, cur_fq, new_fq, categorical_cols=None):
+    """
+    Resamples a pd.DataFrame to a new frequency.
+
+    Args:
+        df (pd.DataFrame): The input pd.DataFrame to be resampled.
+        cur_fq (int): The current frequency in Hz.
+        new_fq (int): The new frequency in Hz.
+
+    Returns:
+        pd.DataFrame: The resampled pd.DataFrame.
+    """
     categorical_cols = categorical_cols or []
     g = gcd(cur_fq, new_fq)
     up, down = new_fq // g, cur_fq // g
@@ -218,20 +293,28 @@ def resample_dataframe(df, cur_fq, new_fq, categorical_cols=None):
     resampled = {}
     for col in df.columns:
         if col in categorical_cols:
-            # nearest-neighbour style resample for labels (only exact for integer ratios)
+
             val = new_fq // cur_fq
             resampled[col] = np.repeat(df[col].values, val) if val == new_fq / cur_fq \
-                else np.repeat(df[col].values, up)[::down]  # fallback for non-integer ratios
+                else np.repeat(df[col].values, up)[::down]  
         else:
             resampled[col] = resample_poly(df[col].values, up, down)
 
-    # trim all columns to the shortest resulting length in case of rounding mismatches
+   
     min_len = min(len(v) for v in resampled.values())
     resampled = {k: v[:min_len] for k, v in resampled.items()}
 
     return pd.DataFrame(resampled)
 
 def extract_activity_start_end(array):
+    """
+    Extracts the start and end indices of each activity in an array. Only used for PPG-Dalia, where all activities for a subject where in one file.
+
+    array (np.ndarray): The input array to be processed.
+
+    Returns:
+        dict: A dictionary containing the start and end indices of each activity.
+    """
     array = np.asarray(array).flatten()
     start_end = dict()
     start_end[1] = dict()
@@ -254,6 +337,17 @@ def extract_activity_start_end(array):
     return start_end
 
 def adj_start_end(start_end, cur_fq, new_fq):
+    """
+    Adjusts the start and end indices of each activity in a dictionary.
+
+    Args:
+        start_end (dict): A dictionary containing the start and end indices of each activity.
+        cur_fq (int): The current frequency in Hz.
+        new_fq (int): The new frequency in Hz.
+
+    Returns:
+        dict: A dictionary containing the adjusted start and end indices of each activity.
+    """
     val = new_fq // cur_fq
     if val != (new_fq / cur_fq):
         raise ValueError(f"New frequency {new_fq} is not divisible by current frequency {cur_fq}.")
@@ -263,6 +357,17 @@ def adj_start_end(start_end, cur_fq, new_fq):
     return start_end
 
 def resample_activity(array, cur_fq, new_fq):
+    """
+    Resamples activity label from PPG-Dalia to be consistent with other datapoints.
+
+    Args:
+        array (np.ndarray): The input array to be resampled.
+        cur_fq (int): The current frequency in Hz.
+        new_fq (int): The new frequency in Hz.
+
+    Returns:
+        np.ndarray: The resampled array.
+    """
     val = new_fq // cur_fq
     if val != (new_fq / cur_fq):
         raise ValueError(f"{new_fq} not evenly divisible by {cur_fq}")

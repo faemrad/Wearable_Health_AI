@@ -11,12 +11,28 @@ from models.HuBERT_ECG.hubert_ecg.modeling_classification import HuBERTECGForCla
 
 
 class FineTuneHuBERT(BaseFrozenModel):
+    """
+    Base class for fine-tuning HuBERT-ECG
+    """
     def __init__(self):
+        """
+        Initialiases the base model class to be used for each HuBERT-ECG model implementation.
+        """
         super().__init__()
         self.model = HuBERTECG.from_pretrained("Edoardo-BS/hubert-ecg-base")
         self.model.to(self.device)
 
     def extract_features(self, backbone, loader):
+        """
+        Extract features from the backbone model.
+
+        Args:
+            backbone: the backbone model
+            loader: the data loader
+
+        Returns:
+            features, labels
+        """
         backbone.eval()
         features, labels = [], []
         with torch.no_grad():
@@ -31,11 +47,30 @@ class FineTuneHuBERT(BaseFrozenModel):
         return np.concatenate(features), np.concatenate(labels)
 
     def prepare_input(self, x):
+        """
+        Prepare input for HuBERT-ECG
+
+        Args:
+            x: the input data
+
+        Returns:
+            the prepared input
+        """
         if x.dim() == 3 and x.shape[1] == 1:
             x = x.squeeze(1)
         return x
 
     def create_finetune_model(self, n_classes, dropout=0.3):
+        """
+        Creates a fine-tuning model for the HuBERT-ECG model.
+
+        Args:
+            n_classes: the number of classes
+            dropout: the dropout rate
+
+        Returns:
+            the fine-tuning model
+        """
         cls_config = HuBERTECGClassificationConfig(
             num_labels=n_classes,
             classifier_dropout_prob=dropout,

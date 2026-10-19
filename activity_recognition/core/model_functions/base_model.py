@@ -1,8 +1,4 @@
-"""Base class for frozen-feature / fine-tuning pipelines on ECG windows.
 
-The behaviour lives in the mixins; this class owns the state (device, loaders)
-and data loading, and composes them so existing imports keep working.
-"""
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, WeightedRandomSampler
@@ -22,8 +18,16 @@ class BaseFrozenModel(
     FineTuneMixin,
     CrossValidationMixin,
 ):
+    """
+    
+    Base class for frozen-feature / fine-tuning pipelines on ECG windows.
+    This class is used to load the data and create the dataloaders for training, validation
+    """
 
     def __init__(self):
+        """
+        Initialiases the base model class to be used for each model implementation.
+        """
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.model = None
         self.train_loader = None
@@ -33,6 +37,19 @@ class BaseFrozenModel(
 
     def load_data(self, X_train, y_train, X_val, y_val, X_test, y_test, batch_size=32,
                   num_workers=0, oversample=False):
+        """
+        Loads the data and creates the dataloaders for training, validation and testing.
+        Args:
+            X_train: training data
+            y_train: training labels
+            X_val: validation data
+            y_val: validation labels
+            X_test: test data
+            y_test: test labels
+            batch_size: batch size for the dataloaders
+            num_workers: number of workers for the dataloaders
+            oversample: whether to oversample the training data to balance the classes
+        """
         train_dataset = Datasets(X_train, y_train, train=True)
         val_dataset = Datasets(X_val, y_val, train=False)
         test_dataset = Datasets(X_test, y_test, train=False)
