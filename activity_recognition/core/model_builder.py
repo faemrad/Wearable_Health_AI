@@ -1,7 +1,6 @@
 import json
 import torch
 import torch.nn as nn
-from transformers import AutoConfig, AutoModel
 from models.ECGFounder.net1d import Net1D
 from models.HuBERT_ECG.hubert_ecg.configuration import HuBERTECGClassificationConfig
 from models.HuBERT_ECG.hubert_ecg.modeling_classification import HuBERTECGForClassification

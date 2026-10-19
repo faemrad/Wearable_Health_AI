@@ -36,13 +36,10 @@ class FineTuneHuBERT(BaseFrozenModel):
         return x
 
     def create_finetune_model(self, n_classes, dropout=0.3):
-        # Build a classification config from the pretrained backbone's config,
-        # then construct HuBERTECGForClassification directly — no custom
-        # head wrapper needed, since it's built in.
         cls_config = HuBERTECGClassificationConfig(
             num_labels=n_classes,
             classifier_dropout_prob=dropout,
-            task_type="multi_class",  # adjust to match your actual task
+            task_type="multi_class",  
             **self.model.config.to_dict(),
         )
         hf_model = HuBERTECGForClassification(cls_config)
@@ -57,10 +54,7 @@ class FineTuneHuBERT(BaseFrozenModel):
             def __init__(self, inner):
                 super().__init__()
                 self.inner = inner
-                self.backbone = inner.hubert_ecg  # exposes the encoder so
-                # BaseFrozenModel._find_named_submodule can detect it as the
-                # backbone, restoring the backbone_lr/head_lr split and making
-                # freeze_backbone actually take effect for HuBERT trials.
+                self.backbone = inner.hubert_ecg  
 
             def forward(self, x):
                 return self.inner(x).logits

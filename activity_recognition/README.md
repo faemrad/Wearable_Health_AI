@@ -105,4 +105,4 @@ You may get a warning:
 
 - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
 
-Download a HF_TOKEN from hugging_face and login for faster downloads. The program can still function without it however and it is not required
+Download a HF_TOKEN from hugging_face and login for faster downloads. The program can still function without it however and it is not required.
