@@ -1,8 +1,6 @@
 *.hea
 *.dat
 *.png
-*.npy
-data/
 *.pyc
 *.pth
 *.safetensors

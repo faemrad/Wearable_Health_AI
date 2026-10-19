@@ -1,0 +1,323 @@
+import os
+from activity_recognition.retrievers.file_reader import FileReader
+from activity_recognition.processors.file_processor import FileProcessor
+
+from scipy.signal import resample_poly
+from math import gcd
+import numpy as np
+import pandas as pd
+
+class DataCombiner:
+    def __init__(self):
+        pass
+
+    def get_all_data(self):
+        all_data = []
+
+        all_data.extend(self.get_ppg_sport())
+        # all_data.extend(self.get_ppg_dalia())
+        # all_data.extend(self.get_wrist_ppg_during_exercise())
+        # all_data.extend(self.get_ptt_ppg_data())
+        return all_data
+
+    def get_ppg_sport(self):
+        folder = os.path.dirname("./data/ppg-sport/converted_data/")
+        all_data = []
+        for file in os.listdir(folder):
+            if file.endswith(".csv") and file != "subjects_info.csv":
+                file_path = os.path.join(folder, file)
+                df = FileReader.read_file_to_df(file_path, add_time=True)
+                df = FileProcessor._convert_numeric_columns(df)
+                df = FileProcessor._drop_units_row_if_present(df)
+                keep_cols = ["ecg", "L_imu_x", "L_imu_y", "L_imu_z", "L_ppg"]
+                df = df.loc[:, df.columns.intersection(keep_cols)]
+                df.rename(columns={"L_ppg": "ppg", "L_imu_x": "imu_x", "L_imu_y": "imu_y", "L_imu_z": "imu_z"}, inplace=True)
+
+                subject = file.split("_")[0]
+                activity = file.split("_")[1]
+                activity = activity.split(".")[0]
+
+                df = resample_dataframe(df, 64, 100)
+
+                datapoint = {
+                    "dataset": "ppg-sport",
+                    "subject": subject,
+                    "activity": activity,
+                    "dataframe": df
+                }
+                all_data.append(datapoint)
+
+        return all_data
+
+    def get_ptt_ppg_data(self):
+        folder = os.path.dirname("./data/pulse-transit-time-ppg/1.1.0/csv/")
+        all_data = []
+        for file in os.listdir(folder):
+            if file.endswith(".csv")  and file != "subjects_info.csv":
+                subject = file.split("_")[0]
+                activity = file.split("_")[1]
+                activity = activity.split(".")[0]
+                file_path = os.path.join(folder, file)
+                df = FileReader.read_file_to_df(file_path, add_time=True)
+                df = FileProcessor._convert_numeric_columns(df)
+                df = FileProcessor._drop_units_row_if_present(df)
+                keep_cols = ["ecg", "a_x", "a_y", "a_z", "g_x", "g_y", "g_z"]
+                df = df.loc[:, df.columns.intersection(keep_cols)]
+                df.rename(columns={"a_x": "acc_x", "a_y": "acc_y", "a_z": "acc_z", "g_x": "gyro_x", "g_y": "gyro_y", "g_z": "gyro_z"}, inplace=True)
+                df = resample_dataframe(df, 500, 100)
+
+                datapoint = {
+                    "dataset": "ptt-ppg",
+                    "subject": subject,
+                    "activity": activity,
+                    "dataframe": df
+                }
+
+                all_data.append(datapoint)
+
+        return all_data
+
+    def get_mhealth_data(self):
+        folder = os.path.dirname("./data/MHEALTHDATASET/")
+        column_labels = ["chest_acc_x", "chest_acc_y", "chest_acc_z", "ecg_1", "ecg_2", "l_ankle_acc_x", "l_ankle_acc_y", "l_ankle_acc_z", 
+                   "l_ankle_gyro_x", "l_ankle_gyro_y", "l_ankle_gyro_z", "l_ankle_mag_x", "l_ankle_mag_y", "l_ankle_mag_z", "r_arm_acc_x", "r_arm_acc_y", "r_arm_acc_z",
+                   "r_arm_gyro_x", "r_arm_gyro_y", "r_arm_gyro_z", "r_arm_mag_x", "r_arm_mag_y", "r_arm_mag_z", "label"]
+        for file in os.listdir(folder):
+            if file.endswith(".log"):
+                file_path = os.path.join(folder, file)
+                df = FileReader.read_file_to_df(file_path, add_time=True)
+                df = FileProcessor._convert_numeric_columns(df)
+                df = FileProcessor._drop_units_row_if_present(df)
+                df.columns = column_labels
+                print(df["label"].unique)
+                print(df.head())
+
+        pass
+
+
+    def get_ppg_dalia(self):
+        main_folder = os.path.dirname("./data/ppg+dalia/data/PPG_FieldStudy/")
+        int_to_activity = {
+            1: "sitting",
+            4: "outdoor-cycle",
+            7: "walking",
+            8: "working"
+        }
+        all_data = []
+        for folder in os.listdir(main_folder):
+            if "." not in folder:
+                folder_path = os.path.join(main_folder, folder)
+
+                for file in os.listdir(folder_path):
+                    if file.endswith(".pkl"):
+                        file_path = os.path.join(folder_path, file)
+                        df = FileReader.pkl_to_dict(file_path)
+
+                        wrist_data = df["signal"]["wrist"]
+                        chest_data = df["signal"]["chest"]
+                        
+                        ppg_data = wrist_data["BVP"]
+                        ecg_data = chest_data["ECG"]
+                        acc_x, acc_y, acc_z = wrist_data["ACC"].T
+
+                        ppg_fq = 64
+                        acc_fq = 32
+                        act_fq = 4
+                        ecg_fq = 700
+                        target_fq = 100
+
+                        initial = extract_activity_start_end(df["activity"])
+                        activity = df["activity"]
+                        resampled_activity = resample_activity(activity, act_fq, target_fq)
+
+                        duration_sec = len(ecg_data) / ecg_fq
+                        target_len = round(duration_sec * 100)
+
+                        ecg_data = resample_to_length(ecg_data, ecg_fq, target_fq, target_len)
+                        ppg_data = resample_to_length(ppg_data, ppg_fq, target_fq, target_len)
+                        acc_x = resample_to_length(acc_x, acc_fq, target_fq, target_len)
+                        acc_y = resample_to_length(acc_y, acc_fq, target_fq, target_len)
+                        acc_z = resample_to_length(acc_z, acc_fq, target_fq, target_len)
+
+                        combined_df = pd.DataFrame()
+                        combined_df["acc_x"] = acc_x
+                        combined_df["acc_y"] = acc_y
+                        combined_df["acc_z"] = acc_z
+                        combined_df["ecg"] = ecg_data
+                        combined_df["ppg"] = ppg_data
+                        combined_df["activity"] = resampled_activity
+                        combined_df["group_id"] = (
+                            combined_df["activity"] != combined_df["activity"].shift()
+                        ).cumsum()
+
+
+                        for (activity_code, group_id), activity_df in combined_df.groupby(["activity", "group_id"]):
+                            if activity_code not in int_to_activity:
+                                continue  # skip untracked codes like transitions (0), stairs, etc.
+
+                            activity_name = int_to_activity[activity_code]
+
+                            datapoint = {
+                                "dataset": "ppg+dalia",
+                                "subject": folder,
+                                "activity": activity_name,
+                                "dataframe": activity_df.drop(columns="group_id"),
+                            }
+                            all_data.append(datapoint)
+                         
+
+        return all_data
+        pass
+
+    def get_wrist_ppg_during_exercise(self):
+        folder_path = "./data/wrist-ppg-during-exercise/1.0.0/"
+        all_data = []
+        for file in os.listdir(folder_path):
+            if file.endswith(".dat"):
+                file_path = os.path.join(folder_path, file)
+                df = FileReader.read_file_to_df(file_path, add_time=True)
+                df = FileProcessor._convert_numeric_columns(df)
+                df = FileProcessor._drop_units_row_if_present(df)
+
+                keep_cols = ["chest_ecg", "wrist_ppg", "wrist_gyro_x", "wrist_gyro_y", "wrist_gyro_z", "wrist_low_noise_accelerometer_x", 
+                             "wrist_low_noise_accelerometer_y", "wrist_low_noise_accelerometer_z", "wrist_wide_range_accelerometer_x", 
+                             "wrist_wide_range_accelerometer_y", "wrist_wide_range_accelerometer_z"]
+                df = df.loc[:, df.columns.intersection(keep_cols)]
+                df.rename(columns={"chest_ecg": "ecg", "wrist_ppg": "ppg", "wrist_gyro_x": "gyro_x", "wrist_gyro_y": "gyro_y", "wrist_gyro_z": "gyro_z",
+                                   "wrist_low_noise_accelerometer_x": "low_noise_acc_x", "wrist_low_noise_accelerometer_y": "low_noise_acc_y", "wrist_low_noise_accelerometer_z": "low_noise_acc_z", 
+                                   "wrist_wide_range_accelerometer_x": "wide_range_acc_x", "wrist_wide_range_accelerometer_y": "wide_range_acc_y", "wrist_wide_range_accelerometer_z": "wide_range_acc_z"}, inplace=True)
+
+                df = resample_dataframe(df, 256, 100)
+  
+                datapoint = {
+                    "dataset": "wrist-ppg",
+                    "subject": file.split("_")[0],
+                    "activity": file.split("_")[-1][:-4],
+                    "dataframe": df
+                }
+                all_data.append(datapoint)
+
+        return all_data
+
+                
+def rescale(data):
+    min_val = min(data)
+    max_val = max(data)
+    for i in range(len(data)):
+        data[i] = (data[i] - min_val) / (max_val - min_val)
+    return data
+
+def resample_data(array, cur_frequency, new_frequency):
+    g = gcd(cur_frequency, new_frequency)
+    up, down = new_frequency // g, cur_frequency // g
+    resampled_array = resample_poly(array, up, down)
+    return resampled_array
+    pass
+
+def resample_to_length(array, cur_fq, new_fq, target_len):
+    g = gcd(cur_fq, new_fq)
+    up, down = new_fq // g, cur_fq // g
+    resampled = resample_poly(array, up, down)
+
+    # trim/pad the small rounding discrepancy (should only ever be a few samples)
+    diff = target_len - len(resampled)
+    if diff > 0:
+        resampled = np.pad(resampled, (0, diff), mode='edge')
+    elif diff < 0:
+        resampled = resampled[:target_len]
+    return resampled
+
+def resample_dataframe(df, cur_fq, new_fq, categorical_cols=None):
+    categorical_cols = categorical_cols or []
+    g = gcd(cur_fq, new_fq)
+    up, down = new_fq // g, cur_fq // g
+
+    resampled = {}
+    for col in df.columns:
+        if col in categorical_cols:
+            # nearest-neighbour style resample for labels (only exact for integer ratios)
+            val = new_fq // cur_fq
+            resampled[col] = np.repeat(df[col].values, val) if val == new_fq / cur_fq \
+                else np.repeat(df[col].values, up)[::down]  # fallback for non-integer ratios
+        else:
+            resampled[col] = resample_poly(df[col].values, up, down)
+
+    # trim all columns to the shortest resulting length in case of rounding mismatches
+    min_len = min(len(v) for v in resampled.values())
+    resampled = {k: v[:min_len] for k, v in resampled.items()}
+
+    return pd.DataFrame(resampled)
+
+def extract_activity_start_end(array):
+    array = np.asarray(array).flatten()
+    start_end = dict()
+    start_end[1] = dict()
+    start_end[4] = dict()
+    start_end[7] = dict()
+    start_end[8] = dict()
+    for i in range(len(array)-1):
+        cur = int(array[i])
+        next = int(array[i+1])
+        if cur != next:
+            if cur in start_end.keys():
+                start_end[cur]['end'] = i
+            if next in start_end.keys():
+                start_end[next]['start'] = i+1
+        if i + 1== len(array)-1:
+            if next in start_end.keys():
+                start_end[next]['end'] = i + 1
+        if i == 0 and cur in start_end.keys():
+            start_end[cur]['start'] = 0
+    return start_end
+
+def adj_start_end(start_end, cur_fq, new_fq):
+    val = new_fq // cur_fq
+    if val != (new_fq / cur_fq):
+        raise ValueError(f"New frequency {new_fq} is not divisible by current frequency {cur_fq}.")
+    for key in start_end.keys():
+        start_end[key]['start'] = start_end[key]['start'] * val
+        start_end[key]['end'] = ((start_end[key]['end'] +  1)* val) - 1
+    return start_end
+
+def resample_activity(array, cur_fq, new_fq):
+    val = new_fq // cur_fq
+    if val != (new_fq / cur_fq):
+        raise ValueError(f"{new_fq} not evenly divisible by {cur_fq}")
+    return np.repeat(array, val)
+
+from scipy.signal import butter, filtfilt
+
+def bandpass_filter(signal, low, high, fs, order=4):
+    """
+    Apply a zero-phase Butterworth bandpass filter.
+
+    Args:
+        signal: 1D array-like signal to filter
+        low: lower cutoff frequency in Hz
+        high: upper cutoff frequency in Hz
+        fs: sampling frequency in Hz
+        order: filter order (4 is a common default, matches typical
+            literature usage without excessive ringing)
+
+    Returns:
+        Filtered signal, same length as input
+    """
+    nyquist = fs / 2
+    low_norm = low / nyquist
+    high_norm = high / nyquist
+
+    b, a = butter(order, [low_norm, high_norm], btype="band")
+    # filtfilt applies the filter forward and backward, giving zero
+    # phase distortion (no time-shift of peaks) — important for
+    # preserving accurate beat timing, unlike a single-pass lfilter
+    filtered = filtfilt(b, a, signal)
+    return filtered
+
+if __name__ == "__main__":
+    data_combiner = DataCombiner()
+    #data_combiner.get_ptt_ppg_data()
+    #data_combiner.get_wrist_ppg()
+    data_combiner.get_ppg_sport()
+    #data_combiner.get_wrist_ppg_during_exercise()
+    #data_combiner.get_mhealth_data()
+    #print(len(data_combiner.get_ppg_dalia()))
