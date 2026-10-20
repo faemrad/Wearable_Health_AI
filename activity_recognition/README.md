@@ -83,7 +83,7 @@ Training writes a `config.json` next to the weights. Evaluation reads these keys
 
 If a key is missing, evaluation falls back to a default instead of failing, which can silently cause a train/eval mismatch.
 
-## Running Evaluation
+## Running Evaluation (Does not require data file downloads)
 
 Once data has been obtained for activity classification the evaluations can occur. To do this the data first will need to be transformed to a numpy array.
 There is a number of prediction options in eval_har_ECGFounder and eval_har_HuBERT for more information refer to their documentation.
