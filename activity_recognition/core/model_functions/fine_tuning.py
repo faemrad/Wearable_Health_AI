@@ -1,5 +1,4 @@
 import os
-import sys
 import time
 
 import numpy as np
@@ -132,7 +131,6 @@ class FineTuneMixin:
             f"Backbone param count: {sum(p.numel() for p in backbone_params)} | "
             f"Head param count: {sum(p.numel() for p in head_params)}"
         )
-        print("python:", sys.executable, "| device:", next(self.classification_model.parameters()).device)
 
         warmup_active = freeze_backbone and unfreeze_after_epoch > 0
 
@@ -276,9 +274,7 @@ class FineTuneMixin:
                 f"Epoch {epoch + 1:02d}/{n_epochs} | Train Loss={train_loss:.4f} | "
                 f"Train Acc={train_acc:.4f} | Val Acc={val_acc:.4f} | Val F1={val_f1:.4f}"
                 + (f" | NON-FINITE val logits: {val_nonfinite}" if val_nonfinite else "")
-                + f" | epoch time: {time.time() - t_epoch:.1f}s",
-                end="\n" if epoch == 0 else "\r", flush=True,
-            )
+                + f" | epoch time: {time.time() - t_epoch:.1f}s")
 
             # ---------------- checkpointing / stopping ----------------
             if val_f1 > best_val_f1 + min_delta:

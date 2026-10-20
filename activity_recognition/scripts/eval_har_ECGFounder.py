@@ -1,5 +1,5 @@
 from activity_recognition.scripts.config import DATATYPE
-from activity_recognition.scripts import load_final_har_ECGFounder
+from activity_recognition.scripts import load_final_har_ecgfounder
 from activity_recognition.core.data_transformer import DataTransformer
 from activity_recognition.core import model_builder as mb
 from collections import Counter
@@ -27,7 +27,7 @@ def main(data: np.ndarray, frequency: int, datatype: str = DATATYPE):
     elif data.ndim != 1:
         raise ValueError(f"Expected 1D or 2D signal, got shape {data.shape}")
     
-    model, config, device = load_final_har_ECGFounder.main(datatype=datatype)
+    model, config, device = load_final_har_ecgfounder.main(datatype=datatype)
     windows = DataTransformer.get_processed_windows_from_np_array(
         data, config["window"], config["overlap"], frequency, config["normalise"],
         rescale=config.get("rescale", False),

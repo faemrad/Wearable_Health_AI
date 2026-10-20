@@ -1,5 +1,5 @@
 from activity_recognition.core.data_transformer import DataTransformer
-from activity_recognition.core.finetune_ECGFounder import FineTuneECGFounder
+from activity_recognition.core.finetune_ecgfounder import FineTuneECGFounder
 from activity_recognition.scripts.config import WINDOW_SIZE, OVERLAP, NORMALISE, RESCALE, WINDOW_FIRST, FREQUENCY, DATATYPE, N_EPOCHS, N_SPLITS, BACKBONE_LEARNING_RATE, HEAD_LEARNING_RATE
 import numpy as np
 
@@ -25,7 +25,7 @@ def main():
 
     model.fine_tune_cross_validation(
         X_all=X, y_all=y, groups_all=groups,
-        class_names=activity_names, datasets_all=datasets,
+        class_names=activity_names,
         n_splits=N_SPLITS, n_classes=len(activity_names), n_epochs=N_EPOCHS)
 
 

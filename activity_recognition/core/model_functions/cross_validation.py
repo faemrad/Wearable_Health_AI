@@ -67,7 +67,6 @@ class CrossValidationMixin:
 
         _, best_val_f1 = self.fine_tune(
             n_classes=n_classes,
-            class_names=class_names,
             n_epochs=n_epochs,
             backbone_lr=backbone_lr,
             head_lr=head_lr,
@@ -164,7 +163,7 @@ class CrossValidationMixin:
             )
 
             self.fine_tune(
-                n_classes=n_classes, class_names=class_names, n_epochs=n_epochs,
+                n_classes=n_classes, n_epochs=n_epochs,
                 backbone_lr=backbone_lr, head_lr=head_lr, weight_decay=weight_decay,
                 early_stopping_patience=early_stopping_patience,
                 scheduler_patience=scheduler_patience, freeze_backbone=freeze_backbone,

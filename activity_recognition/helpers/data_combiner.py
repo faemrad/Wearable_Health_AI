@@ -7,6 +7,7 @@ from math import gcd
 import numpy as np
 import pandas as pd
 
+DATA_FOLDER_PATH = "./data"
 PPG_SPORT_FQ = 64
 PTT_PPG_FQ = 500
 PPG_DALIA_PPG_FQ = 64
@@ -58,7 +59,7 @@ class DataCombiner:
             activity: str
             dataframe: pd.DataFrame where each row is a datapoint
         """
-        folder = os.path.dirname("./data/ppg-sport/converted_data/")
+        folder = os.path.dirname(f"{DATA_FOLDER_PATH}/ppg-sport/converted_data/")
         all_data = []
         for file in os.listdir(folder):
             if file.endswith(".csv") and file != "subjects_info.csv":
@@ -93,7 +94,7 @@ class DataCombiner:
         Returns:
             all_data: list of dataframes
         """
-        folder = os.path.dirname("./data/pulse-transit-time-ppg/1.1.0/csv/")
+        folder = os.path.dirname(f"{DATA_FOLDER_PATH}/pulse-transit-time-ppg/1.1.0/csv/")
         all_data = []
         for file in os.listdir(folder):
             if file.endswith(".csv")  and file != "subjects_info.csv":
@@ -128,7 +129,7 @@ class DataCombiner:
         Returns:
             all_data: list of dataframes
         """
-        main_folder = os.path.dirname("./data/ppg+dalia/data/PPG_FieldStudy/")
+        main_folder = os.path.dirname(f"{DATA_FOLDER_PATH}/ppg+dalia/data/PPG_FieldStudy/")
         int_to_activity = {
             1: "sitting",
             4: "outdoor-cycle",
@@ -202,7 +203,7 @@ class DataCombiner:
         Returns:
             all_data: list of dataframes
         """
-        folder_path = "./data/wrist-ppg-during-exercise/1.0.0/"
+        folder_path = f"{DATA_FOLDER_PATH}/wrist-ppg-during-exercise/1.0.0/"
         all_data = []
         for file in os.listdir(folder_path):
             if file.endswith(".dat"):

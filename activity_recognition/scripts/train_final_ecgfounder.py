@@ -1,5 +1,5 @@
 from activity_recognition.core.data_transformer import DataTransformer
-from activity_recognition.core.finetune_ECGFounder import FineTuneECGFounder
+from activity_recognition.core.finetune_ecgfounder import FineTuneECGFounder
 from activity_recognition.scripts.config import WINDOW_SIZE, OVERLAP, NORMALISE, RESCALE, WINDOW_FIRST, FREQUENCY, DATATYPE, N_EPOCHS, BACKBONE_LEARNING_RATE, \
     HEAD_LEARNING_RATE, BATCH_SIZE, FREEZE_BACKBONE, SAVE_PATH
 import numpy as np
