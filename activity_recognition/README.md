@@ -89,6 +89,7 @@ Once data has been obtained for activity classification the evaluations can occu
 There is a number of prediction options in eval_har_ECGFounder and eval_har_HuBERT for more information refer to their documentation.
 
 To test the models are loading and predicting as expected you can run python -m activity_recognition.scriptes.test_load_and_eval. This should output something like this:
+
 Running HuBERT evaluation on running ECG data:
 {'cycling': 0.0672345935, 'running': 0.8721865471, 'stationary': 0.0066826368, 'walking': 0.0538962136}
 
@@ -106,3 +107,9 @@ You may get a warning:
 - Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
 
 Download a HF_TOKEN from hugging_face and login for faster downloads. The program can still function without it however and it is not required.
+
+## Scripts
+
+| Script | Responsibility |
+|---|---|
+|eval_har_
