@@ -112,4 +112,14 @@ Download a HF_TOKEN from hugging_face and login for faster downloads. The progra
 
 | Script | Responsibility |
 |---|---|
-|eval_har_
+| eval_har_ecgfounder | Contains functions for evaluating PPG and ECG array and returning activity probabilities for ECGFounder model |
+| eval_har_hubert | Contains functions for evaluating PPG and ECG array and returning activity probabilities for HuBERT model |
+| full_fine_tune_ecgfounder | Fine tunes the full ECGFounder model on data selected in data_combiner file |
+| full_fine_tune_hubert | Fine tunes the full HuBERT model on data selected in data_combiner file |
+| linear_probe_ecgfounder | Performs a linear probe on ECGFounder with data selected in data combiner file |
+| linear_probe_huber | Performs a linear probe on HuBERT with data selected in data combiner file |
+| load_final_har_ecgfounder | Loads the ECGFounder HAR models saved on huggingface |
+| load_final_har_hubert | Loads the HuBERT HAR models saved on huggingface |
+| test_load_and_eval | Loads the HAR models and tests them, should be used to ensure that repository works on the device |
+| train_final_ecgfounder | Trains the ECGFounder model on all data available, has a validation set but no test set. Should be used for final deployable model |
+| train_final_hubert | Trains the hubert model on all data available, has a validation set but no test set. Should be used for final deployable model |
