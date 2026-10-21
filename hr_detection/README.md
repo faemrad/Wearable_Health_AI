@@ -9,7 +9,11 @@ Regress heart rate (bpm) from ECG and wrist PPG using pretrained foundation mode
 | ECGFounder 1-lead | PPG-Sport | wrist PPG | `README_PPG.md` |
 | Pulse-PPG | PPG-Sport | wrist PPG | `README_PPG.md` |
 
-Full setup and run order for all four: `RUN_EVERYTHING.md`.
+
+
+Full setup and run order for all four: `RUN_EVERYTHING.md`. I recommend you refer to this for testing the repository.
+
+
 
 Run everything from the repo root as `python -m hr_detection.scripts.<name>`.
 
