@@ -7,6 +7,8 @@
 models/checkpoints/pulseppg/
 __pycache__/
 *.py[cod]
-data/ptb-xl
+data/*
+!data/README.md
+!data/test_data/
 .DS_Store
 .venv/

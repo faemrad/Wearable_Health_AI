@@ -1,6 +1,7 @@
 # Human Activity Recognition for ECG and PPG
 
 To be able to run all scripts the following datasets must be downloaded. Files should be place in a top level ./data folder
+
 - PPG-Sport: https://github.com/LaserHu/PPG-Sport
 - ppg + dalia: https://archive.ics.uci.edu/dataset/495/ppg+dalia
 - pulse-transit-time-ppg: https://physionet.org/content/pulse-transit-time-ppg/1.1.0/
@@ -12,7 +13,10 @@ If files are not downloaded and to only test model download and HAR skip to runn
 2. Run python -m activity_recognition.helpers.ppg_sport_preperation
 
 Once these steps have been completed and assuming data has been stored as requested all of the scripts should be able to run via.
+
+```python
 python -m activity_recognition.scripts.{SPECIFIC_SCRIPT}
+```
 
 ## Script config file explained
 
@@ -86,21 +90,21 @@ If a key is missing, evaluation falls back to a default instead of failing, whic
 ## Running Evaluation (Does not require data file downloads)
 
 Once data has been obtained for activity classification the evaluations can occur. To do this the data first will need to be transformed to a numpy array.
-There is a number of prediction options in eval_har_ECGFounder and eval_har_HuBERT for more information refer to their documentation.
+There is a number of prediction options in eval_har_ecgfounder and eval_har_hubert for more information refer to their documentation.
 
 To test the models are loading and predicting as expected you can run python -m activity_recognition.scriptes.test_load_and_eval. This should output something like this:
 
 Running HuBERT evaluation on running ECG data:
-{'cycling': 0.0672345935, 'running': 0.8721865471, 'stationary': 0.0066826368, 'walking': 0.0538962136}
+`{'cycling': 0.0672345935, 'running': 0.8721865471, 'stationary': 0.0066826368, 'walking': 0.0538962136}`
 
 Running HuBERT evaluation on stationary PPG data:
-{'cycling': 0.152689104, 'running': 0.0537876987, 'stationary': 0.7455079169, 'walking': 0.0480152833}
+`{'cycling': 0.152689104, 'running': 0.0537876987, 'stationary': 0.7455079169, 'walking': 0.0480152833}`
 
 Running ECGFounder evaluation on stationary ECG data:
-{'cycling': 0.0993723207, 'running': 0.0507893467, 'stationary': 0.8149872463, 'walking': 0.0348510799}
+`{'cycling': 0.0993723207, 'running': 0.0507893467, 'stationary': 0.8149872463, 'walking': 0.0348510799}`
 
 Running ECGFounder evaluation on running PPG data:
-{'cycling': 0.0338865304, 'running': 0.8924075057, 'stationary': 0.0204303786, 'walking': 0.0532755833}
+`{'cycling': 0.0338865304, 'running': 0.8924075057, 'stationary': 0.0204303786, 'walking': 0.0532755833}`
 
 You may get a warning:
 

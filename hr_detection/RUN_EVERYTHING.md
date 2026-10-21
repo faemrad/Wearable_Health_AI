@@ -1,6 +1,6 @@
 # Run all four HR models
 
-Two ECG models on PTB-XL, two PPG models on PPG-Sport. Details and flags: `README.md` (ECG) and `README_PPG.md` (PPG).
+Two ECG models on PTB-XL, two PPG models on PPG-Sport. Details and flags: `README_ECG.md` (ECG) and `README_PPG.md` (PPG).
 
 | # | Model | Data | Train | Eval |
 | - | ----- | ---- | ----- | ---- |
@@ -14,8 +14,8 @@ Two ECG models on PTB-XL, two PPG models on PPG-Sport. Details and flags: `READM
 ## 0. Setup (once)
 
 ```bash
-conda activate FIT4701
-cd /Users/mayankbajpai/Dev/Other/FYP/Wearable_Health_AI
+conda activate <env>
+cd Wearable_Health_AI
 
 git submodule update --init --recursive
 pip install transformers safetensors loguru biosppy
@@ -81,3 +81,26 @@ Pulse-PPG frozen-encoder baseline: `train_pulseppg --linear_prob`.
 | Pulse-PPG | `hr_detection/checkpoints/ppg_pulseppg_hr.pth` |
 
 Each eval prints MAE, RMSE, MAPE, and the share of held-out windows within ±5 and ±10 bpm. ECG results are scored against NeuroKit HR; PPG results against ECG-reference HR.
+
+---
+
+## Using pre-trained HR weights (skip training)
+
+Trained weights are not committed to git (`.pth` / `.safetensors` are gitignored). They are hosted on Hugging Face instead.
+
+**To use them:** download the files from the Hugging Face repo `<hf-user>/<hf-repo>` and put them in `hr_detection/checkpoints/` using the names in the table above. Then run only the setup, manifest, and eval steps. Example:
+
+```bash
+huggingface-cli download <hf-user>/<hf-repo> --local-dir hr_detection/checkpoints
+python -m hr_detection.scripts.eval_founder
+python -m hr_detection.scripts.eval_ppgfounder --smooth 5 --baselines
+```
+
+Eval still needs the pretrain backbones (`download_weights`, step 0) and the manifests (step 1).
+
+**To publish new weights:** upload the contents of `hr_detection/checkpoints/`, keeping the same file names and the `hubert_hr/` folder.
+
+```bash
+huggingface-cli login
+huggingface-cli upload <hf-user>/<hf-repo> hr_detection/checkpoints . --include "*.pth" "hubert_hr/*"
+```
