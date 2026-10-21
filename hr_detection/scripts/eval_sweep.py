@@ -1,18 +1,21 @@
-"""Evaluate every checkpoint in hr_detection/checkpoints/sweep/.
+"""Evaluate every checkpoint in hr_detection/checkpoints/.
 
 Writes:
-  hr_detection/checkpoints/sweep/eval_results.txt
-  hr_detection/checkpoints/sweep/eval_results.html
+  hr_detection/checkpoints/eval_results.txt
+  hr_detection/checkpoints/eval_results.html
 
 Run from the repo root:
 
     python -m hr_detection.scripts.eval_sweep
+    python -m hr_detection.scripts.eval_sweep --dataset data/test_data_hr
 """
 
 from __future__ import annotations
 
+import argparse
 import html
 from datetime import datetime
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -29,13 +32,13 @@ from hr_detection.core.paths import (
     PPG_MANIFEST_PATH,
     PULSEPPG_WEIGHTS,
     WEIGHTS_DIR,
+    resolve_dataset,
 )
 from hr_detection.scripts.eval_founder import collect_preds as collect_founder
 from hr_detection.scripts.eval_hubert import collect_preds as collect_hubert
 from hr_detection.scripts.eval_ppgfounder import collect_preds as collect_ppg
 from hr_detection.scripts.eval_ppgfounder import fft_peak_bpm
 
-SWEEP = CKPT_DIR / "sweep"
 WITHIN = (5.0, 10.0)
 SMOOTH = 5
 
@@ -44,63 +47,63 @@ JOBS = [
         "dataset": "PTB-XL",
         "model": "ECGFounder",
         "mode": "Linear probe",
-        "ckpt": SWEEP / "ecgfounder_hr_probe.pth",
+        "ckpt": CKPT_DIR / "ecgfounder_hr_probe.pth",
         "kind": "founder",
     },
     {
         "dataset": "PTB-XL",
         "model": "ECGFounder",
         "mode": "Full fine-tune",
-        "ckpt": SWEEP / "ecgfounder_hr_full.pth",
+        "ckpt": CKPT_DIR / "ecgfounder_hr_full.pth",
         "kind": "founder",
     },
     {
         "dataset": "PTB-XL",
         "model": "HuBERT-ECG",
         "mode": "Linear probe",
-        "ckpt": SWEEP / "hubert_hr_probe",
+        "ckpt": CKPT_DIR / "hubert_hr_probe",
         "kind": "hubert",
     },
     {
         "dataset": "PTB-XL",
         "model": "HuBERT-ECG",
         "mode": "Partial (last 2 blocks)",
-        "ckpt": SWEEP / "hubert_hr_partial",
+        "ckpt": CKPT_DIR / "hubert_hr_partial",
         "kind": "hubert",
     },
     {
         "dataset": "PTB-XL",
         "model": "HuBERT-ECG",
         "mode": "All 8 transformer blocks",
-        "ckpt": SWEEP / "hubert_hr_unfreeze8",
+        "ckpt": CKPT_DIR / "hubert_hr_unfreeze8",
         "kind": "hubert",
     },
     {
         "dataset": "PPG-Sport",
         "model": "ECGFounder",
         "mode": "Linear probe",
-        "ckpt": SWEEP / "ppg_ecgfounder_hr_probe.pth",
+        "ckpt": CKPT_DIR / "ppg_ecgfounder_hr_probe.pth",
         "kind": "founder_ppg",
     },
     {
         "dataset": "PPG-Sport",
         "model": "ECGFounder",
         "mode": "Full fine-tune",
-        "ckpt": SWEEP / "ppg_ecgfounder_hr_full.pth",
+        "ckpt": CKPT_DIR / "ppg_ecgfounder_hr_full.pth",
         "kind": "founder_ppg",
     },
     {
         "dataset": "PPG-Sport",
         "model": "Pulse-PPG",
         "mode": "Linear probe",
-        "ckpt": SWEEP / "ppg_pulseppg_hr_probe.pth",
+        "ckpt": CKPT_DIR / "ppg_pulseppg_hr_probe.pth",
         "kind": "pulseppg",
     },
     {
         "dataset": "PPG-Sport",
         "model": "Pulse-PPG",
         "mode": "Full fine-tune",
-        "ckpt": SWEEP / "ppg_pulseppg_hr_full.pth",
+        "ckpt": CKPT_DIR / "ppg_pulseppg_hr_full.pth",
         "kind": "pulseppg",
     },
 ]
@@ -404,16 +407,39 @@ def _html(rows: list[dict], baselines: dict, when: str, device: str) -> str:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Evaluate every checkpoint in hr_detection/checkpoints/."
+    )
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        default=None,
+        help=(
+            "Folder with ecg_manifest.csv and ppg_manifest.csv. "
+            "Default: the full prepared manifests. "
+            "With this set, reports go in the folder, not checkpoints/."
+        ),
+    )
+    args = parser.parse_args()
+    if args.dataset is not None and not Path(args.dataset).is_dir():
+        raise SystemExit(
+            "--dataset for eval_sweep must be a folder with ecg_manifest.csv and ppg_manifest.csv"
+        )
+
     device = get_device()
+    ecg_path = resolve_dataset(args.dataset, "ecg", MANIFEST_PATH)
+    ppg_path = resolve_dataset(args.dataset, "ppg", PPG_MANIFEST_PATH)
     print("device", device, flush=True)
-    ecg = pd.read_csv(MANIFEST_PATH)
-    ppg = pd.read_csv(PPG_MANIFEST_PATH)
+    print("dataset ecg", ecg_path, flush=True)
+    print("dataset ppg", ppg_path, flush=True)
+    ecg = pd.read_csv(ecg_path)
+    ppg = pd.read_csv(ppg_path)
     manifests = {
         "ecg": ecg[ecg.split == "test"].reset_index(drop=True),
         "ppg": ppg[ppg.split == "test"].reset_index(drop=True),
     }
     if manifests["ecg"].empty or manifests["ppg"].empty:
-        raise RuntimeError("Test split is empty. Build the manifests first.")
+        raise RuntimeError(f"Test split is empty in {ecg_path} or {ppg_path}.")
 
     rows = []
     for job in JOBS:
@@ -425,10 +451,19 @@ def main() -> None:
             flush=True,
         )
 
-    baselines = _baselines(manifests["ppg"], ppg[ppg.split == "train"])
+    train_ppg = ppg[ppg.split == "train"]
+    if train_ppg.empty:
+        print("no PPG train rows; constant baseline uses the eval rows", flush=True)
+        train_ppg = manifests["ppg"]
+    baselines = _baselines(manifests["ppg"], train_ppg)
     when = datetime.now().strftime("%Y-%m-%d %H:%M")
-    txt_path = SWEEP / "eval_results.txt"
-    html_path = SWEEP / "eval_results.html"
+    if args.dataset is None:
+        txt_path = CKPT_DIR / "eval_results.txt"
+        html_path = CKPT_DIR / "eval_results.html"
+    else:
+        out_dir = Path(args.dataset)
+        txt_path = out_dir / "sweep_eval_results.txt"
+        html_path = out_dir / "sweep_eval_results.html"
     txt_path.write_text(_txt(rows, baselines, when, str(device)), encoding="utf-8")
     html_path.write_text(_html(rows, baselines, when, str(device)), encoding="utf-8")
     print("wrote", txt_path, flush=True)

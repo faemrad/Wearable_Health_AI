@@ -11,15 +11,48 @@ Two ECG models on PTB-XL, two PPG models on PPG-Sport. Details and flags: `READM
 
 ---
 
-## 0. Setup (once)
+## Quick evaluation with pre-trained weights
+
+To evaluate every trained checkpoint without training, download the weights and run `eval_sweep`:
+
+```bash
+hf download Mayank12367/wearable-health-heart-rate-detection-sweep-weights --local-dir hr_detection/checkpoints
+
+# Prepare datasets
+python -m hr_detection.scripts.prepare_ptbxl
+python -m hr_detection.scripts.prepare_ppg
+# OR (if you want to use test data)
+python -m hr_detection.scripts.prepare_test_hr
+
+python -m hr_detection.scripts.eval_sweep # Outputs an evaluation report
+# OR (if you want to use test data)
+python -m hr_detection.scripts.eval_sweep --dataset data/test_data_hr
+```
+
+Trained weights are not committed to git (`.pth` / `.safetensors` are gitignored). `eval_sweep` evaluates all downloaded checkpoints and writes `eval_results.txt` and `eval_results.html` under `hr_detection/checkpoints/`.
+
+Eval still needs the pretrain backbones (`download_weights`, step 0), datasets, and manifests (step 1).
+
+**To publish new weights:** upload the contents of `hr_detection/checkpoints/` to the repository root:
+
+```bash
+hf login
+hf upload Mayank12367/wearable-health-heart-rate-detection-sweep-weights hr_detection/checkpoints .
+```
+
+---
+
+## For individual models
+
+
+
+## 0. For individual models
 
 ```bash
 conda activate <env>
 cd Wearable_Health_AI
 
 git submodule update --init --recursive
-pip install transformers safetensors loguru biosppy
-pip install -e models/HuBERT_ECG
 
 python -m hr_detection.scripts.download_weights
 python -m hr_detection.scripts.download_weights --pulseppg
@@ -81,26 +114,3 @@ Pulse-PPG frozen-encoder baseline: `train_pulseppg --linear_prob`.
 | Pulse-PPG | `hr_detection/checkpoints/ppg_pulseppg_hr.pth` |
 
 Each eval prints MAE, RMSE, MAPE, and the share of held-out windows within ±5 and ±10 bpm. ECG results are scored against NeuroKit HR; PPG results against ECG-reference HR.
-
----
-
-## Using pre-trained HR weights (skip training)
-
-Trained weights are not committed to git (`.pth` / `.safetensors` are gitignored). They are hosted on Hugging Face instead.
-
-**To use them:** download the files from the Hugging Face repo `<hf-user>/<hf-repo>` and put them in `hr_detection/checkpoints/` using the names in the table above. Then run only the setup, manifest, and eval steps. Example:
-
-```bash
-huggingface-cli download <hf-user>/<hf-repo> --local-dir hr_detection/checkpoints
-python -m hr_detection.scripts.eval_founder
-python -m hr_detection.scripts.eval_ppgfounder --smooth 5 --baselines
-```
-
-Eval still needs the pretrain backbones (`download_weights`, step 0) and the manifests (step 1).
-
-**To publish new weights:** upload the contents of `hr_detection/checkpoints/`, keeping the same file names and the `hubert_hr/` folder.
-
-```bash
-huggingface-cli login
-huggingface-cli upload <hf-user>/<hf-repo> hr_detection/checkpoints . --include "*.pth" "hubert_hr/*"
-```

@@ -4,6 +4,7 @@ Prints overall MAE/RMSE/MAPE/%-within, per-activity MAE, optional temporal
 smoothing, and constant / FFT-peak baselines.
 
     python -m hr_detection.scripts.eval_ppgfounder --smooth 5
+    python -m hr_detection.scripts.eval_ppgfounder --dataset data/test_data_hr
 """
 
 from __future__ import annotations
@@ -25,7 +26,14 @@ from hr_detection.core.metrics import (
     smooth_by_recording,
 )
 from hr_detection.core.models import load_founder_hr
-from hr_detection.core.paths import CKPT_DIR, PPG_MANIFEST_PATH, REPO_ROOT, TARGET_FS, WEIGHTS_DIR
+from hr_detection.core.paths import (
+    CKPT_DIR,
+    PPG_MANIFEST_PATH,
+    REPO_ROOT,
+    TARGET_FS,
+    WEIGHTS_DIR,
+    resolve_dataset,
+)
 
 
 @torch.no_grad()
@@ -61,6 +69,12 @@ def main():
         description="PPG HR eval: MAE + per-activity + optional smooth / baselines."
     )
     parser.add_argument("--split", default="test", choices=["train", "val", "test"])
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        default=None,
+        help="Manifest CSV, or a folder with ppg_manifest.csv. Default: data/hr_detection_ppg/manifest.csv",
+    )
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--ckpt", type=str, default=str(CKPT_DIR / "ppg_ecgfounder_hr.pth"))
     parser.add_argument("--backbone", type=str, default=str(WEIGHTS_DIR / "1_lead_ECGFounder.pth"))
@@ -80,8 +94,10 @@ def main():
     print("device", device)
     print("ckpt", args.ckpt)
 
+    manifest_path = resolve_dataset(args.dataset, "ppg", PPG_MANIFEST_PATH)
+    print("dataset", manifest_path)
     model = load_founder_hr(args.backbone, args.ckpt, device, linear_prob=True)
-    manifest = pd.read_csv(PPG_MANIFEST_PATH)
+    manifest = pd.read_csv(manifest_path)
     if args.fold is not None:
         part = manifest[manifest.fold == args.fold].reset_index(drop=True)
         train_part = manifest[manifest.fold != args.fold]
@@ -91,7 +107,7 @@ def main():
         train_part = manifest[manifest.split == "train"]
         print("split", args.split)
     if part.empty:
-        raise RuntimeError("No rows for this split/fold in the PPG manifest")
+        raise RuntimeError(f"No rows for this split/fold in {manifest_path}")
 
     loader = DataLoader(HRWindows(part, "founder_ppg"), batch_size=args.batch_size, shuffle=False, num_workers=0)
     pred, y = collect_preds(model, loader, device)

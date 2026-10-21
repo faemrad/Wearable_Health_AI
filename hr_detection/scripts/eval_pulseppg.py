@@ -4,6 +4,7 @@ Prints overall MAE/RMSE/MAPE/%-within, per-activity MAE, optional temporal
 smoothing, and constant / FFT-peak baselines. Same report as eval_ppgfounder.
 
     python -m hr_detection.scripts.eval_pulseppg --smooth 5 --baselines
+    python -m hr_detection.scripts.eval_pulseppg --dataset data/test_data_hr
 """
 
 from __future__ import annotations
@@ -31,6 +32,7 @@ from hr_detection.core.paths import (
     PULSEPPG_WEIGHTS,
     REPO_ROOT,
     TARGET_FS,
+    resolve_dataset,
 )
 
 
@@ -67,6 +69,12 @@ def main():
         description="Pulse-PPG HR eval: MAE + per-activity + optional smooth / baselines."
     )
     parser.add_argument("--split", default="test", choices=["train", "val", "test"])
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        default=None,
+        help="Manifest CSV, or a folder with ppg_manifest.csv. Default: data/hr_detection_ppg/manifest.csv",
+    )
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--ckpt", type=str, default=str(CKPT_DIR / "ppg_pulseppg_hr.pth"))
     parser.add_argument("--backbone", type=str, default=str(PULSEPPG_WEIGHTS))
@@ -86,8 +94,10 @@ def main():
     print("device", device)
     print("ckpt", args.ckpt)
 
+    manifest_path = resolve_dataset(args.dataset, "ppg", PPG_MANIFEST_PATH)
+    print("dataset", manifest_path)
     model = load_pulseppg_hr(args.backbone, args.ckpt, device, linear_prob=False)
-    manifest = pd.read_csv(PPG_MANIFEST_PATH)
+    manifest = pd.read_csv(manifest_path)
     if args.fold is not None:
         part = manifest[manifest.fold == args.fold].reset_index(drop=True)
         train_part = manifest[manifest.fold != args.fold]
@@ -97,7 +107,7 @@ def main():
         train_part = manifest[manifest.split == "train"]
         print("split", args.split)
     if part.empty:
-        raise RuntimeError("No rows for this split/fold in the PPG manifest")
+        raise RuntimeError(f"No rows for this split/fold in {manifest_path}")
 
     loader = DataLoader(HRWindows(part, "pulseppg"), batch_size=args.batch_size, shuffle=False, num_workers=0)
     pred, y = collect_preds(model, loader, device)

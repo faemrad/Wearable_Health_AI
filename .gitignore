@@ -10,5 +10,7 @@ __pycache__/
 data/*
 !data/README.md
 !data/test_data/
+!data/test_data_hr/
 .DS_Store
+hr_detection/checkpoints/
 .venv/
