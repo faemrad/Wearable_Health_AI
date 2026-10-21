@@ -1,0 +1,11 @@
+stem,npy,hr_bpm,patient_id,hand,activity,start_sample_64,gt_index,src,split,fold
+S01L_running_00000,data/test_data_hr/ppg/S01L_running_00000.npy,120.0,1,L,running,0,0,dataset/S01L_running_ppg.npy,test,0
+S01L_running_00128,data/test_data_hr/ppg/S01L_running_00128.npy,120.0,1,L,running,128,1,dataset/S01L_running_ppg.npy,test,0
+S01L_running_00256,data/test_data_hr/ppg/S01L_running_00256.npy,120.0,1,L,running,256,2,dataset/S01L_running_ppg.npy,test,0
+S01L_running_00384,data/test_data_hr/ppg/S01L_running_00384.npy,120.0,1,L,running,384,3,dataset/S01L_running_ppg.npy,test,0
+S01L_running_00512,data/test_data_hr/ppg/S01L_running_00512.npy,120.0,1,L,running,512,4,dataset/S01L_running_ppg.npy,train,0
+S01L_running_00640,data/test_data_hr/ppg/S01L_running_00640.npy,120.0,1,L,running,640,5,dataset/S01L_running_ppg.npy,train,0
+S01L_stationary_00000,data/test_data_hr/ppg/S01L_stationary_00000.npy,73.84615325927734,1,L,stationary,0,0,dataset/S01L_stationary_ppg.npy,test,0
+S01L_stationary_00128,data/test_data_hr/ppg/S01L_stationary_00128.npy,73.84615325927734,1,L,stationary,128,1,dataset/S01L_stationary_ppg.npy,test,0
+S01L_stationary_00256,data/test_data_hr/ppg/S01L_stationary_00256.npy,72.45282745361328,1,L,stationary,256,2,dataset/S01L_stationary_ppg.npy,train,0
+S01L_stationary_00384,data/test_data_hr/ppg/S01L_stationary_00384.npy,72.45282745361328,1,L,stationary,384,3,dataset/S01L_stationary_ppg.npy,train,0

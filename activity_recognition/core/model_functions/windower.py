@@ -1,5 +1,5 @@
 import pandas as pd
-
+import numpy as np
 
 class Windower:
     def __init__(self, window_size: int, overlap: int):
@@ -12,6 +12,34 @@ class Windower:
         """
         self.window_size = window_size
         self.overlap = overlap
+
+    def window_numpy_array(self, data: np.ndarray, frequency: int) -> list:
+        """
+        Create overlapping windows from a NumPy array.
+
+        Args:
+            data (np.ndarray): The input data to be windowed.
+            frequency (int): The frequency of the data in Hz.
+
+        Returns:
+            list: A list of overlapping windows.
+        """
+
+        if len(data.shape) == 1:
+            windows_list = []
+
+            window_length = self.window_size * frequency
+            overlap_length = self.overlap * frequency
+            step_size = window_length - overlap_length
+
+            for start in range(0, len(data) - window_length + 1, step_size):
+                end = start + window_length
+                windows_list.append(data[start:end])
+
+            return windows_list
+
+        else:
+            raise ValueError("Input data must be a 1D array.")
 
     def create_windows(self, data: pd.DataFrame, frequency: int = None) -> list:
         """

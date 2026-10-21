@@ -25,8 +25,18 @@ class FileReader:
         elif file_path[-4:] == ".edf":
             df = FileReader.edf_to_df(file_path)
             return df
+        elif file_path[-4:] == ".npy":
+            data_type = file_path.split("/")[-1].split(".")[0]
+            df = FileReader.npy_to_df(file_path, data_type)
+            return df
+        elif file_path[-4:] == ".log":
+            df = FileReader.log_to_df(file_path)
+            return df
+        elif file_path[-4:] == ".pkl":
+            df = FileReader.pkl_to_df(file_path)
+            return df
         else:
-            print("Incorrect file format, must be .dat, .csv or .edf file")
+            print("Incorrect file format, must be .dat, .csv, .edf, .npy, .pkl or .log file")
             raise ValueError("Unsupported file format")
         
     @staticmethod
@@ -68,7 +78,8 @@ class FileReader:
         Output:
             - a pandas dataframe created from the data files.
         """
-
+        if file_path.endswith(".dat"):
+            file_path = file_path[:-4]  
         record = wfdb.rdrecord(file_path)
         df = pd.DataFrame(record.p_signal, columns=record.sig_name)
         if add_time:
@@ -112,3 +123,49 @@ class FileReader:
         """
         df = pd.DataFrame(np.load(file_path), columns=[data_type])
         return df
+
+    @staticmethod
+    def log_to_df(file_path: str, columns: list = None) -> pd.DataFrame:
+        """
+        Gets data from .log file and combines it into a pandas df. Data is automatically processed.
+
+        Input:
+            - file_path: Either the relative path or the full path to the data_file being opened.
+
+        Output:
+            - a pandas dataframe created from the data files.
+        """
+        if columns is None:
+            df = pd.read_csv(file_path, sep="\t", header=None)
+        else:
+            df = pd.read_csv(file_path, sep="\t", header=None, names=columns)
+
+        return df
+
+    @staticmethod
+    def pkl_to_df(file_path: str) -> pd.DataFrame:
+        """
+        Gets data from .pkl file and combines it into a pandas df. Data is automatically processed.
+
+        Input:
+            - file_path: Either the relative path or the full path to the data_file being opened.
+
+        Output:
+            - a pandas dataframe created from the data files.
+        """
+        df = pd.read_pickle(file_path)
+        return df
+
+    @staticmethod
+    def pkl_to_dict(file_path: str) -> dict:
+        """
+        Gets data from .pkl file and combines it into a pandas df. Data is automatically processed.
+
+        Input:
+            - file_path: Either the relative path or the full path to the data_file being opened.
+
+        Output:
+            - a dictionary created from the data files.
+        """
+        data_dict = pd.read_pickle(file_path)
+        return data_dict

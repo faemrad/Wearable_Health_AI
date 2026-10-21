@@ -1,4 +1,4 @@
-from program.tools.file_reader import FileReader
+from activity_recognition.helpers.file_reader import FileReader
 import pandas as pd
 import numpy as np
 
@@ -11,7 +11,7 @@ class FileProcessor:
         Args:
             file_path (str): The path to the file to process.
             desired_columns (dict): The name of the current columns as keys and the desired names as values.
-            frequency (int): The desired frequency of the data.
+            current_frequency (int): The current frequency of the data.
 
         Returns:
             pd.DataFrame: A pandas dataframe containing the processed data.

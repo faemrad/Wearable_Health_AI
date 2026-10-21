@@ -4,3 +4,6 @@
 [submodule "models/HuBERT_ECG"]
 	path = models/HuBERT_ECG
 	url = https://github.com/jfar0026/HuBERT-ECG.git
+[submodule "models/PulsePPG"]
+	path = models/PulsePPG
+	url = https://github.com/maxxu05/pulseppg.git
