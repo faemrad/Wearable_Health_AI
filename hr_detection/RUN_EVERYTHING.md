@@ -29,7 +29,7 @@ python -m hr_detection.scripts.eval_sweep # Outputs an evaluation report
 python -m hr_detection.scripts.eval_sweep --dataset data/test_data_hr
 ```
 
-Trained weights are not committed to git (`.pth` / `.safetensors` are gitignored). `eval_sweep` evaluates all downloaded checkpoints and writes `eval_results.txt` and `eval_results.html` under `hr_detection/checkpoints/`.
+Trained weights are not committed to git (`.pth` / `.safetensors` are gitignored). `eval_sweep` evaluates all downloaded checkpoints and writes `eval_results.txt` and `eval_results.html` under `output/`.
 
 Eval still needs the pretrain backbones (`download_weights`, step 0), datasets, and manifests (step 1).
 

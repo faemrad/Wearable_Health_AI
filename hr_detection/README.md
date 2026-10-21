@@ -31,7 +31,7 @@ hr_detection/
 - `prepare_ptbxl`, `prepare_ppg`: build the manifests under `data/hr_detection/` and `data/hr_detection_ppg/`.
 - `download_weights`: fetch the ECGFounder backbone (`--pulseppg` for the Pulse-PPG encoder).
 - `train_*` / `eval_*`: one pair per model (see the per-signal READMEs).
-- `eval_sweep`: evaluate every checkpoint in `checkpoints/` and write `eval_results.txt` / `.html` there.
+- `eval_sweep`: evaluate every checkpoint in `checkpoints/` and write `eval_results.txt` / `.html` to repo-root `output/`.
 
 ## Commands
 

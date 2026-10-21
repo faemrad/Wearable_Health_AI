@@ -1,8 +1,8 @@
 """Evaluate every checkpoint in hr_detection/checkpoints/.
 
 Writes:
-  hr_detection/checkpoints/eval_results.txt
-  hr_detection/checkpoints/eval_results.html
+  output/eval_results.txt
+  output/eval_results.html
 
 Run from the repo root:
 
@@ -31,6 +31,7 @@ from hr_detection.core.paths import (
     MANIFEST_PATH,
     PPG_MANIFEST_PATH,
     PULSEPPG_WEIGHTS,
+    REPO_ROOT,
     WEIGHTS_DIR,
     resolve_dataset,
 )
@@ -417,7 +418,7 @@ def main() -> None:
         help=(
             "Folder with ecg_manifest.csv and ppg_manifest.csv. "
             "Default: the full prepared manifests. "
-            "With this set, reports go in the folder, not checkpoints/."
+            "With this set, reports go in the folder, not output/."
         ),
     )
     args = parser.parse_args()
@@ -458,8 +459,10 @@ def main() -> None:
     baselines = _baselines(manifests["ppg"], train_ppg)
     when = datetime.now().strftime("%Y-%m-%d %H:%M")
     if args.dataset is None:
-        txt_path = CKPT_DIR / "eval_results.txt"
-        html_path = CKPT_DIR / "eval_results.html"
+        out_dir = REPO_ROOT / "output"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        txt_path = out_dir / "eval_results.txt"
+        html_path = out_dir / "eval_results.html"
     else:
         out_dir = Path(args.dataset)
         txt_path = out_dir / "sweep_eval_results.txt"

@@ -13,4 +13,5 @@ data/*
 !data/test_data_hr/
 .DS_Store
 hr_detection/checkpoints/
+output/
 .venv/
