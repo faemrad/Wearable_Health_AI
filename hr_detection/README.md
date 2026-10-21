@@ -1,32 +1,35 @@
-# Heart rate from ECG (PTB-XL)
+# Heart rate detection
 
-Regress bpm from 10 s PTB-XL windows with two models:
+Regress heart rate (bpm) from ECG and wrist PPG using pretrained foundation models. Four models across two datasets:
 
-- **ECGFounder**: 1-lead (Lead II), linear probe by default.
-- **HuBERT-ECG small**: 12-lead, last 2 transformer blocks unfrozen by default.
+| Model | Data | Signal | Details |
+| ----- | ---- | ------ | ------- |
+| ECGFounder 1-lead | PTB-XL | ECG (Lead II) | `README_ECG.md` |
+| HuBERT-ECG small | PTB-XL | ECG (12-lead) | `README_ECG.md` |
+| ECGFounder 1-lead | PPG-Sport | wrist PPG | `README_PPG.md` |
+| Pulse-PPG | PPG-Sport | wrist PPG | `README_PPG.md` |
 
-Labels are NeuroKit2 HR from Lead II R-peaks. Records where peak detection fails are dropped. Full run order: `RUN_EVERYTHING.md`.
+Full setup and run order for all four: `RUN_EVERYTHING.md`.
 
 Run everything from the repo root as `python -m hr_detection.scripts.<name>`.
 
-## Commands
+## Layout
 
-```bash
-python -m hr_detection.scripts.prepare_ptbxl      # data/hr_detection/manifest.csv
-python -m hr_detection.scripts.download_weights   # models/checkpoints/1_lead_ECGFounder.pth
-
-python -m hr_detection.scripts.train_ecgfounder   # --full_ft --lr 1e-4 for full fine-tune
-python -m hr_detection.scripts.eval_founder
-
-python -m hr_detection.scripts.train_hubert       # out of memory: --batch_size 2
-python -m hr_detection.scripts.eval_hubert
+```text
+hr_detection/
+  core/          shared library: datasets, models, preprocessing, metrics, paths, device
+  scripts/       CLIs: prepare_*, download_weights, train_*, eval_*, eval_sweep
+  checkpoints/   trained weights (ECG: ecgfounder_hr, hubert_hr; PPG: ppg_*_hr; sweep/)
 ```
 
-Useful eval flags: `--split val`, `--within 5 10 15`, `--ckpt <path>`.
+## Scripts
+
+- `prepare_ptbxl`, `prepare_ppg`: build the manifests under `data/hr_detection/` and `data/hr_detection_ppg/`.
+- `download_weights`: fetch the ECGFounder backbone (`--pulseppg` for the Pulse-PPG encoder).
+- `train_*` / `eval_*`: one pair per model (see the per-signal READMEs).
+- `eval_sweep`: evaluate every checkpoint in `checkpoints/sweep/` and write `eval_results.txt` / `.html` there.
 
 ## Notes
 
-- Prepare reads only `data/ptb-xl/records100/`. A record needs both `.hea` and `.dat`.
-- HuBERT needs `pip install -e models/HuBERT_ECG`. Without it you get `ModuleNotFoundError: hubert_ecg`.
-- Training prints MAE/RMSE only. Run eval to get the within ±5 / ±10 bpm percentages.
-- Do not run `eval_founder` on PPG checkpoints.
+- Keep ECG and PPG runs separate: different data folders, different checkpoints. Do not cross-evaluate.
+- Training prints MAE/RMSE only. Run the matching eval script for within ±5 / ±10 bpm percentages.
