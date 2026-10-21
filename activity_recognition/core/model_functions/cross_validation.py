@@ -15,7 +15,7 @@ class CrossValidationMixin:
                               val_fraction_splits=5, n_epochs=20, backbone_lr=1e-5, head_lr=1e-4,
                               weight_decay=1e-4, early_stopping_patience=8, scheduler_patience=3,
                               freeze_backbone=False, batch_size=32, dropout=0.3,
-                              save_path="final_model.pth", stratify_labels=None,
+                              save_path="final_model.pth", stratify_labels=None, window_size=None, overlap=None, normalise=None, rescale=None, sampling_rate=None, window_first=None,
                               model_name=None):
         """
         Fine-tunes the model on the entire dataset, using a stratified group K-fold split to hold out a validation set for early stopping.
@@ -84,6 +84,13 @@ class CrossValidationMixin:
             "dropout": dropout,
             "class_names": list(class_names),
             "val_f1": best_val_f1,
+            "window": window_size,
+            "overlap": overlap,
+            "normalise": normalise,
+            "rescale": rescale,
+            "sampling_rate": sampling_rate,
+            "window_first": window_first
+
         }
         config_path = save_path.rsplit(".", 1)[0] + "_config.json"
         with open(config_path, "w") as f:

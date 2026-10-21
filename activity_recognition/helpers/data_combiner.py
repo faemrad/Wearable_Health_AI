@@ -7,7 +7,7 @@ from math import gcd
 import numpy as np
 import pandas as pd
 
-DATA_FOLDER_PATH = "./data"
+DATA_FOLDER_PATH = "../FYP_Clean/data"
 PPG_SPORT_FQ = 64
 PTT_PPG_FQ = 500
 PPG_DALIA_PPG_FQ = 64

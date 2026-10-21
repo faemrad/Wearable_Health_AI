@@ -2,6 +2,7 @@ import pandas as pd
 import mne
 import wfdb
 import numpy as np
+import pickle
 
 class FileReader:
     @staticmethod
@@ -167,5 +168,6 @@ class FileReader:
         Output:
             - a dictionary created from the data files.
         """
-        data_dict = pd.read_pickle(file_path)
+        with open(file_path, "rb") as f:
+            data_dict = pickle.load(f, encoding="latin1")
         return data_dict

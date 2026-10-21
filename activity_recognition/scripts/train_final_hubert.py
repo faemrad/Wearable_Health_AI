@@ -36,7 +36,7 @@ def main(final_model_path: str = SAVE_PATH):
         n_epochs=N_EPOCHS, backbone_lr=BACKBONE_LEARNING_RATE, head_lr=HEAD_LEARNING_RATE,
         batch_size=BATCH_SIZE, freeze_backbone=FREEZE_BACKBONE,
         save_path=f"{final_model_path}.pth",
-        stratify_labels=stratify_key,
+        stratify_labels=stratify_key, window_size=WINDOW_SIZE, overlap=OVERLAP, normalise=NORMALISE, rescale=RESCALE, sampling_rate=FREQUENCY, window_first=WINDOW_FIRST,
         model_name="HuBERT",
     )
 
