@@ -18,11 +18,9 @@ To evaluate every trained checkpoint without training, download the weights and 
 ```bash
 hf download Mayank12367/wearable-health-heart-rate-detection-sweep-weights --local-dir hr_detection/checkpoints
 
-# Prepare datasets
+# Prepare datasets OR skip if u want to use data
 python -m hr_detection.scripts.prepare_ptbxl
 python -m hr_detection.scripts.prepare_ppg
-# OR (if you want to use test data)
-python -m hr_detection.scripts.prepare_test_hr
 
 python -m hr_detection.scripts.eval_sweep # Outputs an evaluation report
 # OR (if you want to use test data)
@@ -43,8 +41,6 @@ hf upload Mayank12367/wearable-health-heart-rate-detection-sweep-weights hr_dete
 ---
 
 ## For individual models
-
-
 
 ## 0. For individual models
 

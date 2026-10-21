@@ -1,0 +1,5 @@
+stem,npy,hr_bpm,patient_id,strat_fold,src,split
+00001,data/test_data_hr/ecg/00001.npy,63.55932203389831,15709,3,records100/00000/00001_lr,train
+00002,data/test_data_hr/ecg/00002.npy,46.012269938650306,13243,2,records100/00000/00002_lr,train
+00003,data/test_data_hr/ecg/00003.npy,64.23982869379014,20372,5,records100/00000/00003_lr,test
+00004,data/test_data_hr/ecg/00004.npy,74.53416149068323,17014,3,records100/00000/00004_lr,test
